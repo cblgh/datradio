@@ -6,12 +6,15 @@ var css = require("sheetify")
 
 css("./links/style.css")
 
+var archive = new DatArchive(window.location.toString())
+
 var app = choo()
 app.use(devtools())
 app.use(init)
 app.use(inputHandler)
 app.route("/", mainView)
 app.mount("body")
+
 
 function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
@@ -41,7 +44,9 @@ function mainView(state, emit) {
 }
 
 function createTrack(track) {
-    return html`<li onclick=${play}>${track}</li>`
+    var parts = track.split("/")
+    var title = parts[parts.length - 1]
+    return html`<li onclick=${play}>${title}</li>`
     
     // play the track when clicked on
     function play() {
@@ -55,7 +60,6 @@ function createTrack(track) {
 async function init(state, emitter) {
     state.tracks = []
     // try to load the user's playlist
-    var archive = new DatArchive(window.location.toString())
     try {
         var playlist = JSON.parse(await archive.readFile("playlist.json"))
         state.tracks = playlist.tracks
@@ -67,14 +71,22 @@ async function init(state, emitter) {
     }
 }
 
+async function save(state) {
+    console.log(`saving ${state.tracks[state.tracks.length - 1]} to playlist`)
+    archive.writeFile("playlist.json", JSON.stringify({tracks: state.tracks}, null, 2))
+}
+
 function inputHandler(state, emitter) {
     state.currentAudio = "./assets/jam-congratulations.ogg"
     emitter.on("inputEvt", function (msg) {
-        console.log("CAPTAIN! I spy with mine eye a message:", msg)
-        state.currentAudio = msg
-        var player = document.getElementById("player")
-        player.src = msg
-        player.load()
-        emitter.emit("render")
+        if (msg.length) {
+            state.tracks.push(msg)
+            save(state)
+            state.currentAudio = msg
+            var player = document.getElementById("player")
+            player.src = msg
+            player.load()
+            emitter.emit("render")
+        }
     })
 }
