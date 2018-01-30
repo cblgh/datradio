@@ -12,8 +12,7 @@ var app = choo()
 app.use(devtools())
 app.use(init)
 app.use(inputHandler)
-app.route("/", mainView)
-app.route("*", mainView)
+app.route("/:playlist", mainView)
 app.mount("body")
 
 function wowView(state, emit) {
@@ -30,7 +29,6 @@ async function loadTracks(state, emit, playlist) {
 
 function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
-    loadTracks(state, state.params.wildcard)
     return html`
         <body>
             <h1>piratradio</h1>
@@ -60,7 +58,7 @@ function mainView(state, emit) {
 }
 
 function createPlaylistEl(playlist) {
-    return html`<li><a href="/${playlist}">${playlist}</a></li>`
+    return html`<li><a href="#${playlist}">${playlist}</a></li>`
 }
 
 function createTrack(track) {
@@ -80,17 +78,30 @@ function createTrack(track) {
 async function init(state, emitter) {
     state.tracks = []
     state.playlists = []
-    // try to load the user's playlist
-    try {
-        var playlist = JSON.parse(await archive.readFile("playlist.json"))
-        state.tracks = playlist.tracks
-        console.log(state.tracks)
-        state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" })
-        emitter.emit("render")
-    } catch (e) {
-        console.error("failed to read playlist.json; malformed json?")
-        console.error(e)
+    
+    state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
+   
+    var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
+    // initialize the state with the default playlist
+    loadPlaylist(initialPlaylist)
+
+    function loadPlaylist(path) {
+        console.log("trying to load playlist", name)
+        // try to load the user's playlist
+        try {
+            var playlist = JSON.parse(await archive.readFile(path))
+            state.tracks = playlist.tracks
+            emitter.emit("render")
+        } catch (e) {
+            console.error("failed to read playlist.json; malformed json?")
+            console.error(e)
+        }
     }
+
+    // load the playlist we clicked on
+    emitter.on("navigate", function()  {
+        loadPlaylist(`playlists/${state.params.playlist}.json`)
+    })
 }
 
 async function save(state) {
