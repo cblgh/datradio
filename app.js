@@ -105,8 +105,8 @@ async function init(state, emitter) {
 }
 
 async function save(state) {
-    console.log(`saving ${state.tracks[state.tracks.length - 1]} to playlist`)
-    archive.writeFile("playlist.json", JSON.stringify({tracks: state.tracks}, null, 2))
+    console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
+    archive.writeFile(`playlists/${state.params.playlist}.json`, JSON.stringify({tracks: state.tracks}, null, 2))
 }
 
 function inputHandler(state, emitter) {
