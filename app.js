@@ -32,7 +32,7 @@ function mainView(state, emit) {
     return html`
         <body>
             <h1>piratradio</h1>
-            <audio id="player" controls="controls" >
+            <audio id="player" onended=${trackEnded} controls="controls" >
                 <source src=${state.currentAudio}>
                 Yer browser dinnae support the audio element :(
             </audio>
@@ -48,6 +48,22 @@ function mainView(state, emit) {
         </body>
         `
 
+    function createTrack(track, index) {
+        var parts = track.split("/")
+        var title = parts[parts.length - 1]
+        return html`<li id=track-${index} onclick=${play}>${title}</li>`
+        
+        // play the track when clicked on
+        function play() {
+            emit("playTrack", index)
+        }
+    }
+
+    function trackEnded(evt) {
+        console.log("wow player stopped playing?")
+        emit("nextTrack")
+    }
+
     function keydown(e) {
         console.log(e)
         if (e.key === "Enter") {
@@ -61,21 +77,9 @@ function createPlaylistEl(playlist) {
     return html`<li><a href="#${playlist}">${playlist}</a></li>`
 }
 
-function createTrack(track) {
-    var parts = track.split("/")
-    var title = parts[parts.length - 1]
-    return html`<li onclick=${play}>${title}</li>`
-    
-    // play the track when clicked on
-    function play() {
-        var player = document.getElementById("player")
-        player.src = track
-        player.load()
-        player.play()
-    }
-}
 
 async function init(state, emitter) {
+    state.trackIndex = 0
     state.tracks = []
     state.playlists = []
     
@@ -102,6 +106,28 @@ async function init(state, emitter) {
     emitter.on("navigate", function()  {
         loadPlaylist(`playlists/${state.params.playlist}.json`)
     })
+
+    emitter.on("playTrack", function(index) {
+        console.log("playTrack received this index: " + index)
+        state.trackIndex = index
+        playTrack(state.tracks[index])
+    })
+
+    emitter.on("nextTrack", function() {
+        // TODO: add logic for shuffle :)
+        console.log("b4, track index is: " + state.trackIndex)
+        state.trackIndex = (state.trackIndex + 1) % state.tracks.length 
+        console.log("after, track index is: " + state.trackIndex)
+        playTrack(state.tracks[state.trackIndex])
+    })
+}
+
+function playTrack(track) {
+    console.log(`playing ${track}`)
+    var player = document.getElementById("player")
+    player.src = track
+    player.load()
+    player.play()
 }
 
 async function save(state) {
