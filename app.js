@@ -30,7 +30,7 @@ async function loadTracks(state, emit, playlist) {
 function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
     return html`
-        <body>
+        <body style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
                 <h1 id="title">piratradio</h1>
                 <ul id="playlists">
@@ -87,6 +87,7 @@ async function init(state, emitter) {
     state.trackIndex = 0
     state.tracks = []
     state.playlists = []
+    state.profile = {bg: "#331d1d", color: "#f2f2f2"}
     
     state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
    
@@ -143,12 +144,33 @@ async function save(state) {
 function inputHandler(state, emitter) {
     emitter.on("inputEvt", function (msg) {
         if (msg.length) {
-            state.tracks.push(msg)
-            save(state)
-            var player = document.getElementById("player")
-            player.src = msg
-            player.load()
-            emitter.emit("render")
+            if (msg[0] === ".") {
+                var sep = msg.indexOf(" ")
+                var cmd = msg.substr(1, sep-1).trim()
+                var val = msg.substr(sep)
+                handleCommand(cmd, val)
+            } else {
+                state.tracks.push(msg)
+                save(state)
+                var player = document.getElementById("player")
+                player.src = msg
+                player.load()
+                emitter.emit("render")
+            }
         }
     })
+
+    function handleCommand(command, value) {
+        if (command === "bg") {
+            console.log("set profile bg")
+            state.profile.bg = value
+        } else if (command === "color") {
+            console.log("set profile color")
+            state.profile.color = value
+        }
+        emitter.emit("render")
+        console.log("command: ", command)
+        console.log(";"+command+";")
+        console.log("value: ", value)
+    }
 }
