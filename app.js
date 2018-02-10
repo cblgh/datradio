@@ -31,22 +31,27 @@ function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
     return html`
         <body>
-            <h1>piratradio</h1>
-            <audio id="player" onended=${trackEnded} controls="controls" >
-                <source src=${state.currentAudio}>
-                Yer browser dinnae support the audio element :(
-            </audio>
-            <p>piratradio lives fkrs</p>
-            <ul style="background-color: black; color: white">
-            ${state.playlists.map(createPlaylistEl)}
-            </ul>
-            <p>${state.currentAudio}</p>
-            <ul>
-            ${state.tracks.map(createTrack)}
-            </ul>
-            <input placeholder="i love tracks" onkeydown=${keydown}>
+            <div id="grid-container">
+                <h1 id="title">piratradio</h1>
+                <ul id="playlists">
+                <h3> playlists </h3>
+                ${state.playlists.map(createPlaylistEl)}
+                </ul>
+                <ul id="tracks">
+                ${state.tracks.map(createTrack)}
+                </ul>
+                <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
+                <div id="toggle" onclick=${togglePlayer}>toggle player</div>
+                <audio id="player" onended=${trackEnded} controls="controls" >
+                    Yer browser dinnae support the audio element :(
+                </audio>
+            </div>
         </body>
         `
+    function togglePlayer() {
+        var player = document.getElementById("player")
+        player.style.display = player.style.display == "block" ? "none" : "block"
+    }
 
     function createTrack(track, index) {
         var parts = track.split("/")
@@ -136,12 +141,10 @@ async function save(state) {
 }
 
 function inputHandler(state, emitter) {
-    state.currentAudio = "./assets/jam-congratulations.ogg"
     emitter.on("inputEvt", function (msg) {
         if (msg.length) {
             state.tracks.push(msg)
             save(state)
-            state.currentAudio = msg
             var player = document.getElementById("player")
             player.src = msg
             player.load()
