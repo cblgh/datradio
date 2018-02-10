@@ -1,0 +1,74 @@
+body { 
+    background-color: #331d1d;
+    color: #f2f2f2;
+    font-family: Arial;
+    margin-top: 70px;
+}
+
+li {
+    list-style: none;
+}
+
+a:visited {
+    color: inherit;
+    text-decoration: none;
+}
+
+#playlists a {
+    opacity: 1;
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.4;
+}
+
+#playlists a:hover {
+    cursor: pointer;
+    opacity: 0.6 !important;
+    transition: opacity 0.4;
+    border-bottom-style: solid;
+}
+
+#tracks {
+    grid-area: tracks;
+}
+
+#playlists {
+    grid-area: playlists;
+}
+
+#terminal {
+    grid-area: terminal;
+    width: 500px;
+    font-size: 12pt;
+    color: #c4c4c4;
+    background-color: #1d1d1d;
+    border: none;
+    padding: 7px;
+    outline: 0;
+}
+
+#title {
+    grid-area: title;
+}
+
+#player {
+    grid-area: player;
+    display: none;
+}
+
+#toggle {
+    grid-area: toggle;
+}
+
+#grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: 
+    "playlists  title       ."
+    "playlists  terminal    ."
+    "playlists  tracks      tracks  "
+    "playlists  tracks      tracks  "
+    ".          player      toggle"
+    ;
+}
