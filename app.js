@@ -105,6 +105,7 @@ async function init(state, emitter) {
         try {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
             state.tracks = playlist.tracks
+            state.profile = playlist.profile
             emitter.emit("render")
         } catch (e) {
             console.error("failed to read playlist.json; malformed json?")
@@ -146,7 +147,7 @@ function playTrack(track) {
 
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
-    archive.writeFile(`playlists/${state.params.playlist}.json`, JSON.stringify({tracks: state.tracks}, null, 2))
+    archive.writeFile(`playlists/${state.params.playlist}.json`, JSON.stringify({tracks: state.tracks, profile: state.profile}, null, 2))
     archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", playlists: []}, null, 2))
 }
 
@@ -208,6 +209,7 @@ function inputHandler(state, emitter) {
             //     save(state)
             // }
         }
+        save(state)
         emitter.emit("render")
         console.log("command: ", command)
         console.log("value: ", value)
