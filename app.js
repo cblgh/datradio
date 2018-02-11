@@ -1,4 +1,3 @@
-// choo stuff
 var html = require("choo/html")
 var devtools = require("choo-devtools")
 var choo = require("choo")
@@ -6,21 +5,19 @@ var css = require("sheetify")
 
 css("./links/style.css")
 
+var remoteRoute = "/remote/:url/:playlist"
+
 var archive = new DatArchive(window.location.toString())
 
 var app = choo()
 app.use(devtools())
 app.use(init)
 app.use(inputHandler)
+app.route(remoteRoute, mainView)
 app.route("/:playlist", mainView)
 app.mount("body")
 
-function wowView(state, emit) {
-    return html`<body><p> wow </p><p>${state.params.wildcard}</p></body>`
-}
-
 async function loadTracks(state, emit, playlist) {
-    console.log("loadTracks:", playlist)
     if (playlist) {
         var p = JSON.parse(await archive.readFile(`playlists/${playlist}`))
         state.tracks = p.tracks
@@ -36,6 +33,7 @@ function mainView(state, emit) {
                 <ul id="playlists">
                 <h3> playlists </h3>
                 ${state.playlists.map(createPlaylistEl)}
+                ${state.following.map(createPlaylistSub)}
                 </ul>
                 <ul id="tracks">
                 ${state.tracks.map(createTrack)}
@@ -48,6 +46,7 @@ function mainView(state, emit) {
             </div>
         </body>
         `
+
     function togglePlayer() {
         var player = document.getElementById("player")
         player.style.display = player.style.display == "block" ? "none" : "block"
@@ -55,7 +54,7 @@ function mainView(state, emit) {
 
     function createTrack(track, index) {
         var parts = track.split("/")
-        var title = parts[parts.length - 1]
+        var title = parts[parts.length - 1].trim()
         return html`<li id=track-${index} onclick=${play}>${title}</li>`
         
         // play the track when clicked on
@@ -65,7 +64,6 @@ function mainView(state, emit) {
     }
 
     function trackEnded(evt) {
-        console.log("wow player stopped playing?")
         emit("nextTrack")
     }
 
@@ -79,7 +77,12 @@ function mainView(state, emit) {
 }
 
 function createPlaylistEl(playlist) {
-    return html`<li><a href="#${playlist}">${playlist}</a></li>`
+    return html`<li><a href="/#${playlist}">${playlist}</a></li>`
+}
+
+function createPlaylistSub(sub) {
+    var playlist = `${sub.name}/${sub.playlist}`
+    return html`<li><a href="/remote/${sub.source}/${sub.playlist}">+ ${playlist}</a></li>`
 }
 
 
@@ -87,19 +90,20 @@ async function init(state, emitter) {
     state.trackIndex = 0
     state.tracks = []
     state.playlists = []
+    state.following = []
     state.profile = {bg: "#331d1d", color: "#f2f2f2"}
     
     state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
    
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
     // initialize the state with the default playlist
-    loadPlaylist(initialPlaylist)
+    loadPlaylist(archive, initialPlaylist)
 
-    function loadPlaylist(path) {
+    async function loadPlaylist(playlistArchive, path) {
         console.log("trying to load playlist", name)
         // try to load the user's playlist
         try {
-            var playlist = JSON.parse(await archive.readFile(path))
+            var playlist = JSON.parse(await playlistArchive.readFile(path))
             state.tracks = playlist.tracks
             emitter.emit("render")
         } catch (e) {
@@ -110,7 +114,11 @@ async function init(state, emitter) {
 
     // load the playlist we clicked on
     emitter.on("navigate", function()  {
-        loadPlaylist(`playlists/${state.params.playlist}.json`)
+        var arch = archive
+        if (state.route === remoteRoute) {
+            arch = new DatArchive(state.params.url)
+        }
+        loadPlaylist(arch, `playlists/${state.params.playlist}.json`)
     })
 
     emitter.on("playTrack", function(index) {
@@ -139,6 +147,21 @@ function playTrack(track) {
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
     archive.writeFile(`playlists/${state.params.playlist}.json`, JSON.stringify({tracks: state.tracks}, null, 2))
+    archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", playlists: []}, null, 2))
+}
+
+async function getProfileName(datUrl) {
+    var remote = new DatArchive(datUrl)
+    var profile = JSON.parse(await remote.readFile("profile.json"))
+    return profile.name
+}
+
+function extractPlaylist(input) {
+    var playlistName = input.substr(73)
+    if (playlistName.length === 0) {
+        return "playlist"
+    }
+    return playlistName
 }
 
 function inputHandler(state, emitter) {
@@ -147,7 +170,7 @@ function inputHandler(state, emitter) {
             if (msg[0] === ".") {
                 var sep = msg.indexOf(" ")
                 var cmd = msg.substr(1, sep-1).trim()
-                var val = msg.substr(sep)
+                var val = msg.substr(sep).trim()
                 handleCommand(cmd, val)
             } else {
                 state.tracks.push(msg)
@@ -162,15 +185,31 @@ function inputHandler(state, emitter) {
 
     function handleCommand(command, value) {
         if (command === "bg") {
-            console.log("set profile bg")
             state.profile.bg = value
         } else if (command === "color") {
-            console.log("set profile color")
             state.profile.color = value
+        } else if (command === "sub") {
+            getProfileName(value).then((name) => {
+                var playlist = extractPlaylist(value)
+                state.following.push({
+                    source: value.substr(6, 64),
+                    playlist: playlist,
+                    name: name,
+                    link: value
+                })
+                emitter.emit("render")
+                // save(state)
+            })
+        } else if (command === "unsub") {
+            console.log("unsub unimplemented")
+            // var index = state.following.indexOf(value)
+            // if (index >= 0) {
+            //     state.following.splice(index, index)
+            //     save(state)
+            // }
         }
         emitter.emit("render")
         console.log("command: ", command)
-        console.log(";"+command+";")
         console.log("value: ", value)
     }
 }
