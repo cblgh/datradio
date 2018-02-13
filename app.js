@@ -70,6 +70,17 @@ async function loadTracks(state, emit, playlist) {
     }
 }
 
+function createHelpSidebar() {
+    var items = []
+    for (var key in commands) {
+        items.push({key: key, cmd: commands[key]})
+    }
+    function createHelpEl(p) {
+        return html`<div class="help-container"><div class="help-cmd">${p.key}</div><div class="help-value">${p.cmd.value}</div><div class="help-desc">${p.cmd.desc}</div></div>`
+    }
+    return html`<h3 id="commands"><div>commands</div>${items.map(createHelpEl)}</div>`
+}
+
 function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
     return html`
@@ -85,6 +96,7 @@ function mainView(state, emit) {
                 ${state.tracks.map(createTrack)}
                 </ul>
                 <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
+                ${createHelpSidebar()}
                 <div id="toggle" onclick=${togglePlayer}>toggle player</div>
                 <audio id="player" onended=${trackEnded} controls="controls" >
                     Yer browser dinnae support the audio element :(

@@ -28,6 +28,22 @@ a:visited {
     border-bottom-style: solid;
 }
 
+.help-container {
+    padding-bottom: 15px;
+    font-size: 9pt;
+}
+.help-cmd:before {
+    content: ".";
+}
+.help-cmd, .help-value {
+    display: inline-block;
+    padding-right: 10px;
+}
+
+.help-desc {
+    padding-left: 10px;
+}
+
 #tracks {
     grid-area: tracks;
 }
@@ -60,15 +76,19 @@ a:visited {
     grid-area: toggle;
 }
 
+#commands {
+    grid-area: commands
+}
+
 #grid-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     grid-template-rows: auto;
     grid-template-areas: 
-    "playlists  title       ."
-    "playlists  terminal    ."
-    "playlists  tracks      tracks  "
-    "playlists  tracks      tracks  "
-    ".          player      toggle"
+    "playlists  title       .       commands"
+    "playlists  terminal    .       commands"
+    "playlists  tracks      tracks  commands"
+    "playlists  tracks      tracks  commands"
+    ".          player      toggle  commands"
     ;
 }
