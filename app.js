@@ -244,7 +244,6 @@ function inputHandler(state, emitter) {
 
     function handleCommand(command, value) {
         if (command in commands) {
-            console.log("running", command, "with", value)
             commands[command].call(state, value)
             save(state)
             emitter.emit("render")

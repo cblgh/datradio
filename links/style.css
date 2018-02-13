@@ -77,7 +77,7 @@ a:visited {
 }
 
 #commands {
-    grid-area: commands
+    grid-area: commands;
 }
 
 #grid-container {
