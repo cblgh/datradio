@@ -17,6 +17,52 @@ app.route(remoteRoute, mainView)
 app.route("/:playlist", mainView)
 app.mount("body")
 
+var commands = {
+    "unsub": {
+        value:  "#f2f2f2",
+        desc: "change the font colour",
+        call: function(state, value) {
+            console.log("unsub unimplemented")
+            // var index = state.following.indexOf(value)
+            // if (index >= 0) {
+            //     state.following.splice(index, index)
+            //     save(state)
+            // }
+        }
+    },
+    "sub": {
+        value: "dat://1337...7331/#playlist-name",
+        desc: "subscribe to a playlist",
+        call: function(state, value) {
+            getProfileName(value).then((name) => {
+                var playlist = extractPlaylist(value)
+                state.following.push({
+                    source: value.substr(6, 64),
+                    playlist: playlist,
+                    name: name,
+                    link: value
+                })
+                emitter.emit("render")
+                // save(state)
+            })
+        }
+    },
+    "bg": {
+        value: "#1d1d1d",
+        desc: "change the background colour",
+        call: function(state, value) {
+            state.profile.bg = value
+        }
+    },
+    "color": {
+        value:  "#f2f2f2",
+        desc: "change the font colour",
+        call: function(state, value) {
+            state.profile.color = value
+        }
+    }
+}
+
 async function loadTracks(state, emit, playlist) {
     if (playlist) {
         var p = JSON.parse(await archive.readFile(`playlists/${playlist}`))
@@ -185,33 +231,11 @@ function inputHandler(state, emitter) {
     })
 
     function handleCommand(command, value) {
-        if (command === "bg") {
-            state.profile.bg = value
-        } else if (command === "color") {
-            state.profile.color = value
-        } else if (command === "sub") {
-            getProfileName(value).then((name) => {
-                var playlist = extractPlaylist(value)
-                state.following.push({
-                    source: value.substr(6, 64),
-                    playlist: playlist,
-                    name: name,
-                    link: value
-                })
-                emitter.emit("render")
-                // save(state)
-            })
-        } else if (command === "unsub") {
-            console.log("unsub unimplemented")
-            // var index = state.following.indexOf(value)
-            // if (index >= 0) {
-            //     state.following.splice(index, index)
-            //     save(state)
-            // }
+        if (command in commands) {
+            console.log("running", command, "with", value)
+            commands[command].call(state, value)
+            save(state)
+            emitter.emit("render")
         }
-        save(state)
-        emitter.emit("render")
-        console.log("command: ", command)
-        console.log("value: ", value)
     }
 }
