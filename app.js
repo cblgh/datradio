@@ -18,9 +18,23 @@ app.route("/:playlist", mainView)
 app.mount("body")
 
 var commands = {
-    "unsub": {
+    "bg": {
+        value: "#1d1d1d",
+        desc: "change the background colour",
+        call: function(state, value) {
+            state.profile.bg = value
+        }
+    },
+    "color": {
         value:  "#f2f2f2",
         desc: "change the font colour",
+        call: function(state, value) {
+            state.profile.color = value
+        }
+    },
+    "unsub": {
+        value:  "",
+        desc: "unsub from current playlist",
         call: function(state, value) {
             console.log("unsub unimplemented")
             // var index = state.following.indexOf(value)
@@ -45,20 +59,6 @@ var commands = {
                 emitter.emit("render")
                 // save(state)
             })
-        }
-    },
-    "bg": {
-        value: "#1d1d1d",
-        desc: "change the background colour",
-        call: function(state, value) {
-            state.profile.bg = value
-        }
-    },
-    "color": {
-        value:  "#f2f2f2",
-        desc: "change the font colour",
-        call: function(state, value) {
-            state.profile.color = value
         }
     }
 }
