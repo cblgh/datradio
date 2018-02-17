@@ -40,6 +40,10 @@ a:visited {
     padding-right: 10px;
 }
 
+.help-value {
+    font-style: italic;
+}
+
 .help-desc {
     padding-left: 10px;
 }
