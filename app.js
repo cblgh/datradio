@@ -139,8 +139,7 @@ function mainView(state, emit) {
                 </ul>
                 <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
                 ${createHelpSidebar()}
-                <div id="playtime">${getPlaytime}</div>
-                <div id="toggle" onclick=${togglePlayer}>toggle player</div>
+                ${createDurationCounter()}
                 <audio id="player" onended=${trackEnded} controls="controls" >
                     Yer browser dinnae support the audio element :(
                 </audio>
@@ -153,9 +152,24 @@ function mainView(state, emit) {
         player.style.display = player.style.display == "block" ? "none" : "block"
     }
     
-    function getPlaytime() {
+    function createDurationCounter() {
         var player = document.getElementById("player")
-        return `${parseInt(player.currentTime)}/${parseInt(player.duration)}`
+        var current = "00:00"
+        var duration = "00:00"
+
+        function format(durationStr) {
+            durationStr = parseInt(durationStr)
+            var min = pad(parseInt(durationStr / 60), 2)
+            var sec = pad(parseInt(durationStr % 60), 2)
+            return `${min}:${sec}`
+        }
+
+        if (player) {
+            current = format(player.currentTime)
+            duration = format(player.duration)
+        }
+
+        return html`<div id="time">${current}/${duration}</div>`
     }
 
     function createTrack(track, index) {
@@ -291,6 +305,12 @@ function extractPlaylist(input) {
 var audioRegexp = new RegExp("\.[wav|ogg|mp3]$")
 function isTrack(msg) {
     return audioRegexp.test(msg)
+}
+
+function pad(num, size) {
+    var s = num+"";
+    while (s.length < size) s = "0" + s;
+    return s;
 }
 
 function normalizeArchive(str) {     

@@ -80,6 +80,10 @@ a:visited {
     grid-area: toggle;
 }
 
+#time {
+    grid-area: time;
+}
+
 #commands {
     grid-area: commands;
 }
@@ -93,6 +97,6 @@ a:visited {
     "playlists  terminal    .       commands"
     "playlists  tracks      tracks  commands"
     "playlists  tracks      tracks  commands"
-    ".          player      toggle  commands"
+    ".          player      time    commands"
     ;
 }
