@@ -18,24 +18,66 @@ app.route("/:playlist", mainView)
 app.mount("body")
 
 var commands = {
+    "save": {
+        value: "",
+        desc: "[debug] save state",
+        call: function(state, emit, value) {
+            save(state)
+        }
+    },
+    "next": {
+        value: "",
+        desc: "play the next song",
+        call: function(state, emit, value) {
+            emit.emit("nextTrack")
+        }
+    },
+    "del": {
+        value: "track index",
+        desc: "delete track from playlist",
+        call: function(state, emit, value) {
+            emit.emit("deleteTrack", parseInt(value))
+        }
+    },
+    "pause": {
+        value: "",
+        desc: "pause the current song",
+        call: function(state, emit, value) {
+            var player = document.getElementById("player")
+            player.pause()
+        }
+    },
+    "play": {
+        value: "optional track index",
+        desc: "resume the current song",
+        call: function(state, emit, value) {
+            if (value) { 
+                emit.emit("playTrack", parseInt(value))
+            } else {
+                // resume the current track
+                var player = document.getElementById("player")
+                player.play()
+            }
+        }
+    },
     "bg": {
         value: "#1d1d1d",
         desc: "change the background colour",
-        call: function(state, value) {
+        call: function(state, emit, value) {
             state.profile.bg = value
         }
     },
     "color": {
         value:  "#f2f2f2",
         desc: "change the font colour",
-        call: function(state, value) {
+        call: function(state, emit, value) {
             state.profile.color = value
         }
     },
     "unsub": {
         value:  "",
         desc: "unsub from current playlist",
-        call: function(state, value) {
+        call: function(state, emit, value) {
             console.log("unsub unimplemented")
             // var index = state.following.indexOf(value)
             // if (index >= 0) {
@@ -47,7 +89,7 @@ var commands = {
     "sub": {
         value: "dat://1337...7331/#playlist-name",
         desc: "subscribe to a playlist",
-        call: function(state, value) {
+        call: function(state, emit, value) {
             getProfileName(value).then((name) => {
                 var playlist = extractPlaylist(value)
                 state.following.push({
@@ -193,6 +235,19 @@ async function init(state, emitter) {
         console.log("after, track index is: " + state.trackIndex)
         playTrack(state.tracks[state.trackIndex])
     })
+
+    emitter.on("deleteTrack", function(index) {
+        var emitNextTrack = false
+        state.trackIndex = parseInt(state.trackIndex)
+        index = parseInt(index)
+        state.tracks.splice(index, 1)
+        if (state.trackIndex >= index) {
+            var emitNextTrack = (state.trackIndex === index && state.tracks.length > 0)
+            state.trackIndex = state.trackIndex - 1
+            // if current was deleted, play next
+            if (emitNextTrack) { emitter.emit("nextTrack") }
+        }
+    })
 }
 
 function playTrack(track) {
@@ -228,15 +283,12 @@ function inputHandler(state, emitter) {
         if (msg.length) {
             if (msg[0] === ".") {
                 var sep = msg.indexOf(" ")
-                var cmd = msg.substr(1, sep-1).trim()
-                var val = msg.substr(sep).trim()
+                var cmd = sep >= 0 ? msg.substr(1, sep-1).trim() : msg.substr(1)
+                var val = sep >= 0 ? msg.substr(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
                 state.tracks.push(msg)
                 save(state)
-                var player = document.getElementById("player")
-                player.src = msg
-                player.load()
                 emitter.emit("render")
             }
         }
@@ -244,8 +296,8 @@ function inputHandler(state, emitter) {
 
     function handleCommand(command, value) {
         if (command in commands) {
-            commands[command].call(state, value)
-            save(state)
+            commands[command].call(state, emitter, value)
+            // save(state)
             emitter.emit("render")
         }
     }
