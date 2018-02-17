@@ -278,6 +278,17 @@ function extractPlaylist(input) {
     return playlistName
 }
 
+
+var audioRegexp = new RegExp("\.[wav|ogg|mp3]$")
+function isTrack(msg) {
+    return audioRegexp.test(msg)
+}
+
+function normalizeArchive(str) {     
+    // remove trailing slash
+    return str.replace(/\/$/, "")
+} 
+
 function inputHandler(state, emitter) {
     emitter.on("inputEvt", function (msg) {
         if (msg.length) {
@@ -287,7 +298,21 @@ function inputHandler(state, emitter) {
                 var val = sep >= 0 ? msg.substr(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
-                state.tracks.push(msg)
+                if (isTrack(msg)) {
+                    state.tracks.push(msg)
+                } else {
+                    // assume it's a dat archive folder, and try to read its contents
+                    var a = new DatArchive(msg)
+                    console.log("assuming a folder full of stuff!")
+                    a.readdir("/").then((dir) => {
+                        dir.filter((i) => isTrack(i)).map((i) => {
+                            var p = normalizeArchive(msg) + "/" + i
+                            state.tracks.push(p)
+                        })
+                        emitter.emit("render")
+                        save(state)
+                    })
+                }
                 save(state)
                 emitter.emit("render")
             }
