@@ -139,6 +139,7 @@ function mainView(state, emit) {
                 </ul>
                 <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
                 ${createHelpSidebar()}
+                <div id="playtime">${getPlaytime}</div>
                 <div id="toggle" onclick=${togglePlayer}>toggle player</div>
                 <audio id="player" onended=${trackEnded} controls="controls" >
                     Yer browser dinnae support the audio element :(
@@ -150,6 +151,11 @@ function mainView(state, emit) {
     function togglePlayer() {
         var player = document.getElementById("player")
         player.style.display = player.style.display == "block" ? "none" : "block"
+    }
+    
+    function getPlaytime() {
+        var player = document.getElementById("player")
+        return `${parseInt(player.currentTime)}/${parseInt(player.duration)}`
     }
 
     function createTrack(track, index) {
@@ -187,6 +193,9 @@ function createPlaylistSub(sub) {
 
 
 async function init(state, emitter) {
+    setInterval(function() {
+        emitter.emit("render")
+    }, 1000)
     state.trackIndex = 0
     state.tracks = []
     state.playlists = []
