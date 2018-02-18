@@ -106,6 +106,7 @@ var commands = {
         value: "optional track index",
         desc: "resume the current track",
         call: function(state, emit, value) {
+            console.log(".play", value, parseInt(value))
             if (value) { 
                 emit.emit("playTrack", parseInt(value))
             } else {
@@ -305,7 +306,7 @@ async function init(state, emitter) {
     emitter.on("playTrack", function(index) {
         console.log("playTrack received this index: " + index)
         state.trackIndex = index
-        playTrack(state.tracks[index])
+        playTrack(state.tracks[index], index)
     })
 
     emitter.on("resumeTrack", function() {
@@ -323,13 +324,13 @@ async function init(state, emitter) {
         console.log("b4, track index is: " + state.trackIndex)
         state.trackIndex = (state.trackIndex + 1) % state.tracks.length 
         console.log("after, track index is: " + state.trackIndex)
-        playTrack(state.tracks[state.trackIndex])
+        playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
     emitter.on("previousTrack", function() {
         // TODO: add logic for shuffle :)
         state.trackIndex = (state.trackIndex - 1) % state.tracks.length 
-        playTrack(state.tracks[state.trackIndex])
+        playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
 
@@ -347,7 +348,13 @@ async function init(state, emitter) {
     })
 }
 
-function playTrack(track) {
+function playTrack(track, index) {
+    var prev = document.getElementsByClassName("playing")[0]
+    if (prev) {
+        prev.classList.remove("playing")
+    }
+    document.getElementById(`track-${index}`).classList.add("playing")
+
     console.log(`playing ${track}`)
     var player = document.getElementById("player")
     player.src = track

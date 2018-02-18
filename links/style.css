@@ -88,6 +88,14 @@ a:visited {
     grid-area: commands;
 }
 
+.playing:before {
+    content: "► ";
+}
+
+.playing {
+    margin-left: -20px;
+}
+
 #grid-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
