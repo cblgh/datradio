@@ -99,8 +99,7 @@ var commands = {
         value: "",
         desc: "pause the current track",
         call: function(state, emit, value) {
-            var player = document.getElementById("player")
-            player.pause()
+            emit.emit("pauseTrack")
         }
     },
     "play": {
@@ -179,7 +178,7 @@ function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
-        <body style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
+        <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
                 <h1 id="title">piratradio (${playlistName})</h1>
                 <ul id="playlists">
@@ -205,9 +204,6 @@ function mainView(state, emit) {
         player.style.display = player.style.display == "block" ? "none" : "block"
     }
     
-    function createDurationCounter() {
-    }
-
     function createTrack(track, index) {
         var parts = track.split("/")
         var title = parts[parts.length - 1].trim()
@@ -223,8 +219,20 @@ function mainView(state, emit) {
         emit("nextTrack")
     }
 
+    function hotkeys(e) {
+        var term = document.getElementById("terminal")
+        var player = document.getElementById("player")
+        if (document.activeElement != term) {
+            if (e.key === "n") { emit("nextTrack") }
+            else if (e.key === "p") { emit("previousTrack") }
+            else if (e.key === " ") { 
+                if (player.paused) emit("resumeTrack")
+                else emit("pauseTrack")
+            }
+        }
+    }
+
     function keydown(e) {
-        console.log(e)
         if (e.key === "Enter") {
             emit("inputEvt", e.target.value)
             e.target.value = ""
@@ -300,6 +308,16 @@ async function init(state, emitter) {
         playTrack(state.tracks[index])
     })
 
+    emitter.on("resumeTrack", function() {
+        var player = document.getElementById("player")
+        player.play()
+    })
+
+    emitter.on("pauseTrack", function() {
+        var player = document.getElementById("player")
+        player.pause()
+    })
+
     emitter.on("nextTrack", function() {
         // TODO: add logic for shuffle :)
         console.log("b4, track index is: " + state.trackIndex)
@@ -307,11 +325,13 @@ async function init(state, emitter) {
         console.log("after, track index is: " + state.trackIndex)
         playTrack(state.tracks[state.trackIndex])
     })
+
     emitter.on("previousTrack", function() {
         // TODO: add logic for shuffle :)
         state.trackIndex = (state.trackIndex - 1) % state.tracks.length 
         playTrack(state.tracks[state.trackIndex])
     })
+
 
     emitter.on("deleteTrack", function(index) {
         var emitNextTrack = false
