@@ -6,7 +6,8 @@
     "dependencies": {
         "bankai": "^9.3.1",
         "choo": "^6.7.0",
-        "choo-devtools": "^2.3.3"
+        "choo-devtools": "^2.3.3",
+        "nanocomponent": "^6.5.1"
     },
     "devDependencies": {
         "browser-pack-flat": "^3.0.3",

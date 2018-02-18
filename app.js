@@ -1,5 +1,6 @@
 var html = require("choo/html")
 var devtools = require("choo-devtools")
+var Nanocomponent = require("nanocomponent")
 var choo = require("choo")
 var css = require("sheetify")
 
@@ -16,6 +17,34 @@ app.use(inputHandler)
 app.route(remoteRoute, mainView)
 app.route("/:playlist", mainView)
 app.mount("body")
+
+function format(durationStr) {
+    durationStr = parseInt(durationStr)
+    var min = pad(parseInt(durationStr / 60), 2)
+    var sec = pad(parseInt(durationStr % 60), 2)
+    return `${min}:${sec}`
+}
+
+class Counter extends Nanocomponent {
+    constructor() {
+        super()
+        this.current = "--:--"
+        this.duration = "--:--"
+    }
+
+    createElement(time, duration) {
+        this.current = time
+        this.duration = duration
+        return html`<div id="time">${format(this.current)}/${format(this.duration)}</div>`
+    }
+    
+    update(time, duration) {
+        console.log("nanocomponent update - time:", time)
+        time = format(time)
+        duration = format(duration)
+        return time != this.current || duration != this.duration
+    }
+}
 
 var commands = {
     "save": {
@@ -117,12 +146,14 @@ function createHelpSidebar() {
     for (var key in commands) {
         items.push({key: key, cmd: commands[key]})
     }
+
     function createHelpEl(p) {
         return html`<div class="help-container"><div class="help-cmd">${p.key}</div><div class="help-value">${p.cmd.value}</div><div class="help-desc">${p.cmd.desc}</div></div>`
     }
     return html`<h3 id="commands"><div>commands</div>${items.map(createHelpEl)}</div>`
 }
 
+var counter = new Counter()
 function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
     return html`
@@ -139,7 +170,7 @@ function mainView(state, emit) {
                 </ul>
                 <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
                 ${createHelpSidebar()}
-                ${createDurationCounter()}
+                ${counter.render(state.time, state.duration)}
                 <audio id="player" onended=${trackEnded} controls="controls" >
                     Yer browser dinnae support the audio element :(
                 </audio>
@@ -153,23 +184,6 @@ function mainView(state, emit) {
     }
     
     function createDurationCounter() {
-        var player = document.getElementById("player")
-        var current = "00:00"
-        var duration = "00:00"
-
-        function format(durationStr) {
-            durationStr = parseInt(durationStr)
-            var min = pad(parseInt(durationStr / 60), 2)
-            var sec = pad(parseInt(durationStr % 60), 2)
-            return `${min}:${sec}`
-        }
-
-        if (player) {
-            current = format(player.currentTime)
-            duration = format(player.duration)
-        }
-
-        return html`<div id="time">${current}/${duration}</div>`
     }
 
     function createTrack(track, index) {
@@ -207,8 +221,15 @@ function createPlaylistSub(sub) {
 
 
 async function init(state, emitter) {
+    state.time = 0
+    state.duration = 0
     setInterval(function() {
-        emitter.emit("render")
+        var player = document.getElementById("player")
+        if (player) {
+            state.time = player.currentTime
+            state.duration = player.duration || 0
+        }
+        counter.render(state.time, state.duration)
     }, 1000)
     state.trackIndex = 0
     state.tracks = []
@@ -279,6 +300,8 @@ function playTrack(track) {
     player.src = track
     player.load()
     player.play()
+    var duration = player.duration || 0
+    counter.render(player.currentTime, duration)
 }
 
 async function save(state) {
