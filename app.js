@@ -130,32 +130,26 @@ var commands = {
             state.profile.color = value
         }
     },
-    "unsub": {
-        value:  "",
-        desc: "unsub from current playlist",
-        call: function(state, emit, value) {
-            console.log("unsub unimplemented")
-            // var index = state.following.indexOf(value)
-            // if (index >= 0) {
-            //     state.following.splice(index, index)
-            //     save(state)
-            // }
-        }
-    },
+    // "unsub": {
+    //     value:  "",
+    //     desc: "unsub from current playlist",
+    //     call: function(state, emit, value) {
+    //         console.log("unsub unimplemented")
+    //         var index = state.following.indexOf(value)
+    //         if (index >= 0) {
+    //             state.following.splice(index, index)
+    //             save(state)
+    //         }
+    //     }
+    // },
     "sub": {
         value: "dat://1337...7331/#playlist-name",
         desc: "subscribe to a playlist",
         call: function(state, emit, value) {
-            getProfileName(value).then((name) => {
-                var playlist = extractPlaylist(value)
-                state.following.push({
-                    source: value.substr(6, 64),
-                    playlist: playlist,
-                    name: name,
-                    link: value
-                })
-                emitter.emit("render")
-                // save(state)
+            extractSub(value).then((info) => {
+                state.following.push(info)
+                emit.emit("render")
+                save(state)
             })
         }
     }
@@ -268,7 +262,9 @@ async function init(state, emitter) {
         }
         counter.render(state.time, state.duration)
     }, 1000)
-    
+
+    var followUrls = JSON.parse(await archive.readFile("profile.json")).following
+    state.following = await Promise.all(followUrls.map((url) => extractSub(url)))
     state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
    
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
@@ -344,7 +340,16 @@ function playTrack(track) {
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
     savePlaylist(state.params.playlist, state)
-    archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", playlists: []}, null, 2))
+    archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", following: state.following.map((o) => o.link)}, null, 2))
+}
+
+async function extractSub(url) {
+    return {
+        source: url.substr(6, 64),
+        playlist: extractPlaylist(url),
+        name: await getProfileName(url),
+        link: url
+    }
 }
 
 async function getProfileName(datUrl) {
@@ -354,7 +359,7 @@ async function getProfileName(datUrl) {
 }
 
 function extractPlaylist(input) {
-    var playlistName = input.substr(73)
+    var playlistName = input.substr(72)
     if (playlistName.length === 0) {
         return "playlist"
     }
