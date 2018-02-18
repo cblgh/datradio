@@ -60,8 +60,7 @@ var commands = {
             state.playlists.push(value)
             window.location.hash = value
             reset(state)
-            archive.writeFile(`/playlists/${value}.json`, 
-                JSON.stringify({tracks: state.tracks, profile: state.profile}, null, 2))
+            savePlaylist(value, state)
             .then(() => {
                 save(state)
                 emit.emit("render")
@@ -344,7 +343,7 @@ function playTrack(track) {
 
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
-    archive.writeFile(`playlists/${state.params.playlist}.json`, JSON.stringify({tracks: state.tracks, profile: state.profile}, null, 2))
+    savePlaylist(state.params.playlist, state)
     archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", playlists: []}, null, 2))
 }
 
@@ -378,6 +377,10 @@ function normalizeArchive(str) {
     // remove trailing slash
     return str.replace(/\/$/, "")
 } 
+
+function savePlaylist(name, state) {
+    return archive.writeFile(`playlists/${name}.json`, JSON.stringify({tracks: state.tracks, profile: state.profile}, null, 2))
+}
 
 function inputHandler(state, emitter) {
     emitter.on("inputEvt", function (msg) {
