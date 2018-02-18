@@ -18,6 +18,11 @@ app.route(remoteRoute, mainView)
 app.route("/:playlist", mainView)
 app.mount("body")
 
+// fix modulo for negative integers
+Number.prototype.mod = function(n) {
+        return ((this%n)+n)%n;
+}
+
 function format(durationStr) {
     durationStr = parseInt(durationStr)
     var min = pad(parseInt(durationStr / 60), 2)
@@ -47,6 +52,22 @@ class Counter extends Nanocomponent {
 }
 
 var commands = {
+    "create": {
+        value: "playlist-name (no spaces)",
+        desc: "create a playlist",
+        call: function(state, emit, value) {
+            value = value.replace(" ", "-")
+            state.playlists.push(value)
+            window.location.hash = value
+            reset(state)
+            archive.writeFile(`/playlists/${value}.json`, 
+                JSON.stringify({tracks: state.tracks, profile: state.profile}, null, 2))
+            .then(() => {
+                save(state)
+                emit.emit("render")
+            })
+        }
+    },
     "save": {
         value: "",
         desc: "[debug] save state",
@@ -54,9 +75,16 @@ var commands = {
             save(state)
         }
     },
+    "prev": {
+        value: "",
+        desc: "play the previous track",
+        call: function(state, emit, value) {
+            emit.emit("previousTrack")
+        }
+    },
     "next": {
         value: "",
-        desc: "play the next song",
+        desc: "play the next track",
         call: function(state, emit, value) {
             emit.emit("nextTrack")
         }
@@ -70,7 +98,7 @@ var commands = {
     },
     "pause": {
         value: "",
-        desc: "pause the current song",
+        desc: "pause the current track",
         call: function(state, emit, value) {
             var player = document.getElementById("player")
             player.pause()
@@ -78,7 +106,7 @@ var commands = {
     },
     "play": {
         value: "optional track index",
-        desc: "resume the current song",
+        desc: "resume the current track",
         call: function(state, emit, value) {
             if (value) { 
                 emit.emit("playTrack", parseInt(value))
@@ -156,10 +184,11 @@ function createHelpSidebar() {
 var counter = new Counter()
 function mainView(state, emit) {
     emit("DOMTitleChange", "piratradio")
+    var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
         <body style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
-                <h1 id="title">piratradio</h1>
+                <h1 id="title">piratradio (${playlistName})</h1>
                 <ul id="playlists">
                 <h3> playlists </h3>
                 ${state.playlists.map(createPlaylistEl)}
@@ -219,10 +248,19 @@ function createPlaylistSub(sub) {
     return html`<li><a href="/remote/${sub.source}/${sub.playlist}">+ ${playlist}</a></li>`
 }
 
-
-async function init(state, emitter) {
+function reset(state) {
     state.time = 0
     state.duration = 0
+    state.trackIndex = 0
+    state.tracks = []
+    state.profile = {bg: "#331d1d", color: "#f2f2f2"}
+}
+
+
+async function init(state, emitter) {
+    reset(state)
+    state.playlists = []
+    state.following = []
     setInterval(function() {
         var player = document.getElementById("player")
         if (player) {
@@ -231,11 +269,6 @@ async function init(state, emitter) {
         }
         counter.render(state.time, state.duration)
     }, 1000)
-    state.trackIndex = 0
-    state.tracks = []
-    state.playlists = []
-    state.following = []
-    state.profile = {bg: "#331d1d", color: "#f2f2f2"}
     
     state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
    
@@ -277,6 +310,11 @@ async function init(state, emitter) {
         console.log("b4, track index is: " + state.trackIndex)
         state.trackIndex = (state.trackIndex + 1) % state.tracks.length 
         console.log("after, track index is: " + state.trackIndex)
+        playTrack(state.tracks[state.trackIndex])
+    })
+    emitter.on("previousTrack", function() {
+        // TODO: add logic for shuffle :)
+        state.trackIndex = (state.trackIndex - 1) % state.tracks.length 
         playTrack(state.tracks[state.trackIndex])
     })
 
