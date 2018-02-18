@@ -189,7 +189,7 @@ function mainView(state, emit) {
     function createTrack(track, index) {
         var parts = track.split("/")
         var title = parts[parts.length - 1].trim()
-        return html`<li id=track-${index} onclick=${play}>${title}</li>`
+        return html`<li id=track-${index} onclick=${play}>${pad(index, 3)} ${title}</li>`
         
         // play the track when clicked on
         function play() {
