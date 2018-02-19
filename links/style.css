@@ -1,7 +1,11 @@
+@font-face {
+    font-family: "SpaceMono";
+    src: url("/SpaceMono-Regular.ttf");
+}
 body { 
     background-color: #331d1d;
     color: #f2f2f2;
-    font-family: Arial;
+    font-family: "SpaceMono", Arial;
     margin-top: 70px;
 }
 
