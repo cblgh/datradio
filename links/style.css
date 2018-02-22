@@ -3,14 +3,20 @@
     src: url("/SpaceMono-Regular.ttf");
 }
 body { 
-    background-color: #331d1d;
+    background-color: black;
     color: #f2f2f2;
     font-family: "SpaceMono", Arial;
-    margin-top: 70px;
+    margin-top: 30px;
 }
 
 li {
     list-style: none;
+}
+
+#tracks li:hover {
+    cursor: pointer;
+    opacity: 0.6 !important;
+    transition: opacity 0.4;
 }
 
 a:visited {
@@ -54,6 +60,7 @@ a:visited {
 
 #tracks {
     grid-area: tracks;
+    padding: 0;
 }
 
 #playlists {
@@ -62,7 +69,6 @@ a:visited {
 
 #terminal {
     grid-area: terminal;
-    width: 500px;
     font-size: 12pt;
     color: #c4c4c4;
     background-color: #1d1d1d;
@@ -86,10 +92,12 @@ a:visited {
 
 #time {
     grid-area: time;
+    justify-self: end;
 }
 
 #commands {
     grid-area: commands;
+    justify-self: end;
 }
 
 .playing:before {
@@ -100,15 +108,29 @@ a:visited {
     margin-left: -20px;
 }
 
+.center {
+    display: grid;
+    grid-area: center;
+    grid-template-columns: 1fr;
+    grid-template-rows: 70px 35px 50px 1fr;
+    grid-template-areas: 
+    "title"
+    "time"
+    "terminal"
+    "tracks"
+    ;
+}
+
 #grid-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* grid-template-columns: repeat(4, 1fr); */
+    grid-template-columns: 325px 650px 1fr;
     grid-template-rows: auto;
     grid-template-areas: 
-    "playlists  title       .       commands"
-    "playlists  terminal    .       commands"
-    "playlists  tracks      tracks  commands"
-    "playlists  tracks      tracks  commands"
-    ".          player      time    commands"
+    "playlists  center commands"
+    "playlists  center commands"
+    "playlists  center commands"
+    "playlists  center commands"
+    "player     center commands"
     ;
 }

@@ -9,6 +9,7 @@ css("./links/style.css")
 var remoteRoute = "/remote/:url/:playlist"
 
 var archive = new DatArchive(window.location.toString())
+var title = "datradio"
 
 var app = choo()
 app.use(devtools())
@@ -67,6 +68,45 @@ var commands = {
             })
         }
     },
+    "delete-playlist": {
+        value: "playlist-name",
+        desc: "delete the playlist",
+        call: function(state, emit, value) {
+            // don't delete the default playlist
+            if (value === "playlist") {
+                return
+            }
+            deletePlaylist(value)
+            .then(loadPlaylists)
+            .then((playlists) => {
+                state.playlists = playlists
+                // handle deleting the current playlist 
+                if (value === state.params.playlist) {
+                    window.location.hash = "playlist"
+                }
+                emit.emit("render")
+            })
+        }
+    },
+    "rename": {
+        value: "new-playlist-name (no spaces)",
+        desc: "rename the current playlist",
+        call: function(state, emit, value) {
+            if (value) {
+                var oldPlaylist = state.params.playlist
+                state.playlists.splice(state.playlists.indexOf(oldPlaylist), 1)
+                savePlaylist(value, state).then(() => {
+                    deletePlaylist(oldPlaylist)
+                    .then(loadPlaylists)
+                    .then((playlists) => {
+                        state.playlists = playlists
+                        window.location.hash = value.replace(" ", "")
+                        emit.emit("render")
+                    })
+                })
+            }
+        }
+    },
     "save": {
         value: "",
         desc: "[debug] save state",
@@ -103,17 +143,10 @@ var commands = {
         }
     },
     "play": {
-        value: "optional track index",
-        desc: "resume the current track",
+        value: "track index",
+        desc: "play track",
         call: function(state, emit, value) {
-            console.log(".play", value, parseInt(value))
-            if (value) { 
-                emit.emit("playTrack", parseInt(value))
-            } else {
-                // resume the current track
-                var player = document.getElementById("player")
-                player.play()
-            }
+            emit.emit("playTrack", parseInt(value))
         }
     },
     "bg": {
@@ -162,6 +195,10 @@ async function loadTracks(state, emit, playlist) {
     }
 }
 
+function deletePlaylist(name) {
+    return await archive.unlink(`playlists/${name}.json`)
+}
+
 function createHelpSidebar() {
     var items = []
     for (var key in commands) {
@@ -176,23 +213,25 @@ function createHelpSidebar() {
 
 var counter = new Counter()
 function mainView(state, emit) {
-    emit("DOMTitleChange", "piratradio")
+    emit("DOMTitleChange", title)
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
-                <h1 id="title">piratradio (${playlistName})</h1>
                 <ul id="playlists">
-                <h3> playlists </h3>
-                ${state.playlists.map(createPlaylistEl)}
-                ${state.following.map(createPlaylistSub)}
+                    <h3> playlists </h3>
+                    ${state.playlists.map(createPlaylistEl)}
+                    ${state.following.map(createPlaylistSub)}
                 </ul>
-                <ul id="tracks">
-                ${state.tracks.map(createTrack)}
-                </ul>
-                <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
+                <div class="center">
+                    <h1 id="title">${title} (${playlistName})</h1>
+                    <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
+                    <ul id="tracks">
+                    ${state.tracks.map(createTrack)}
+                    </ul>
+                    ${counter.render(state.time, state.duration)}
+                </div>
                 ${createHelpSidebar()}
-                ${counter.render(state.time, state.duration)}
                 <audio id="player" onended=${trackEnded} controls="controls" >
                     Yer browser dinnae support the audio element :(
                 </audio>
@@ -255,9 +294,13 @@ function reset(state) {
     state.duration = 0
     state.trackIndex = 0
     state.tracks = []
-    state.profile = {bg: "#331d1d", color: "#f2f2f2"}
+    state.profile = {bg: "black", color: "#f2f2f2"}
 }
 
+async function loadPlaylists() {
+    var playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
+    return playlists
+}
 
 async function init(state, emitter) {
     reset(state)
@@ -274,14 +317,14 @@ async function init(state, emitter) {
 
     var followUrls = JSON.parse(await archive.readFile("profile.json")).following
     state.following = await Promise.all(followUrls.map((url) => extractSub(url)))
-    state.playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
-   
+    console.log("pls fix playlists")
+    state.playlists = await loadPlaylists() 
+    console.log("why u no work")
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
     // initialize the state with the default playlist
     loadPlaylist(archive, initialPlaylist)
 
     async function loadPlaylist(playlistArchive, path) {
-        console.log("trying to load playlist", name)
         // try to load the user's playlist
         try {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
@@ -304,7 +347,7 @@ async function init(state, emitter) {
     })
 
     emitter.on("playTrack", function(index) {
-        console.log("playTrack received this index: " + index)
+        console.log("playTrack received this index: " + index, typeof index)
         state.trackIndex = index
         playTrack(state.tracks[index], index)
     })
@@ -447,7 +490,7 @@ function inputHandler(state, emitter) {
     function handleCommand(command, value) {
         if (command in commands) {
             commands[command].call(state, emitter, value)
-            // save(state)
+            save(state)
             emitter.emit("render")
         }
     }
