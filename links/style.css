@@ -108,13 +108,19 @@ a:visited {
     margin-left: -20px;
 }
 
+#description {
+    grid-area: description;
+    padding-bottom: 5px;
+}
+
 .center {
     display: grid;
     grid-area: center;
     grid-template-columns: 1fr;
-    grid-template-rows: 70px 35px 50px 1fr;
+    grid-template-rows: 70px auto 35px 50px 1fr;
     grid-template-areas: 
     "title"
+    "description"
     "time"
     "terminal"
     "tracks"

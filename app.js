@@ -68,6 +68,18 @@ var commands = {
             })
         }
     },
+    "desc": {
+        value: "<description>",
+        desc: "a description of this playlist",
+        call: function(state, emit, value) {
+            state.description = value
+            savePlaylist(value, state)
+            .then(() => {
+                save(state)
+                emit.emit("render")
+            })
+        }
+    },
     "delete-playlist": {
         value: "playlist-name",
         desc: "delete the playlist",
@@ -225,6 +237,7 @@ function mainView(state, emit) {
                 </ul>
                 <div class="center">
                     <h1 id="title">${title} (${playlistName})</h1>
+                    <div id="description">${state.description}</div>
                     <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
                     <ul id="tracks">
                     ${state.tracks.map(createTrack)}
@@ -305,6 +318,7 @@ async function loadPlaylists() {
 async function init(state, emitter) {
     reset(state)
     state.playlists = []
+    state.description = ""
     state.following = []
     setInterval(function() {
         var player = document.getElementById("player")
@@ -330,6 +344,7 @@ async function init(state, emitter) {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
             state.tracks = playlist.tracks
             state.profile = playlist.profile
+            state.description = playlist.description
             emitter.emit("render")
         } catch (e) {
             console.error("failed to read playlist.json; malformed json?")
@@ -454,7 +469,10 @@ function normalizeArchive(str) {
 } 
 
 function savePlaylist(name, state) {
-    return archive.writeFile(`playlists/${name}.json`, JSON.stringify({tracks: state.tracks, profile: state.profile}, null, 2))
+    return archive.writeFile(`playlists/${name}.json`, JSON.stringify({
+        tracks: state.tracks, 
+        description: state.description,
+        profile: state.profile}, null, 2))
 }
 
 function inputHandler(state, emitter) {
