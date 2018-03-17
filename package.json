@@ -21,7 +21,7 @@
     },
     "scripts": {
         "start": "bankai start",
-        "build": "browserify -t browserify-nodent -t [ sheetify -u sheetify-cssnext ] -p [ css-extract -o bundle.css ] -p common-shakeify -p browser-pack-flat/plugin app.js -g uglifyify > bundle.js",
+        "build": "date && browserify -t browserify-nodent -t [ sheetify -u sheetify-cssnext ] -p [ css-extract -o bundle.css ] -p common-shakeify -p browser-pack-flat/plugin app.js -g uglifyify > bundle.js",
         "bankai-build": "bankai build",
         "inspect": "bankai inspect"
     },
