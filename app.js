@@ -73,11 +73,8 @@ var commands = {
         desc: "a description of this playlist",
         call: function(state, emit, value) {
             state.description = value
-            savePlaylist(value, state)
-            .then(() => {
-                save(state)
-                emit.emit("render")
-            })
+            save(state)
+            emit.emit("render")
         }
     },
     "delete-playlist": {
@@ -255,6 +252,7 @@ function mainView(state, emit) {
     function togglePlayer() {
         var player = document.getElementById("player")
         player.style.display = player.style.display == "block" ? "none" : "block"
+                    emit("resumeTrack")
     }
     
     function createTrack(track, index) {
@@ -264,7 +262,20 @@ function mainView(state, emit) {
         
         // play the track when clicked on
         function play() {
-            emit("playTrack", index)
+            // current track clicked on
+            if (state.trackIndex === index) {
+                var player = document.getElementById("player")
+                // lets resume the current track
+                if (player.paused) {
+                    emit("resumeTrack")
+                // pause the current track
+                } else {
+                    emit("pauseTrack")
+                }
+            // we wanted to play a new track
+            } else {
+                emit("playTrack", index)
+            }
         }
     }
 
@@ -369,11 +380,15 @@ async function init(state, emitter) {
 
     emitter.on("resumeTrack", function() {
         var player = document.getElementById("player")
+        removeClass("paused")
+        addClass(state.trackIndex, "playing")
         player.play()
     })
 
     emitter.on("pauseTrack", function() {
         var player = document.getElementById("player")
+        removeClass("playing")
+        addClass(state.trackIndex, "paused")
         player.pause()
     })
 
@@ -406,12 +421,24 @@ async function init(state, emitter) {
     })
 }
 
-function playTrack(track, index) {
-    var prev = document.getElementsByClassName("playing")[0]
-    if (prev) {
-        prev.classList.remove("playing")
+function addClass(index, cssClass) {
+    document.getElementById(`track-${index}`).classList.add(cssClass)
+}
+
+function removeClass(cssClass) {
+    var items =  document.getElementsByClassName(cssClass)
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i]
+        if (item) {
+            item.classList.remove(cssClass)
+        }
     }
-    document.getElementById(`track-${index}`).classList.add("playing")
+}
+
+function playTrack(track, index) {
+    removeClass("playing")
+    removeClass("paused")
+    addClass(index, "playing")
 
     console.log(`playing ${track}`)
     var player = document.getElementById("player")
