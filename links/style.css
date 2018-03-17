@@ -110,7 +110,6 @@ a:visited {
 
 #description {
     grid-area: description;
-    padding-bottom: 5px;
 }
 
 .center {
