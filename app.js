@@ -387,6 +387,7 @@ async function init(state, emitter) {
 
     emitter.on("pauseTrack", function() {
         var player = document.getElementById("player")
+        console.log("pauseTrack!!")
         removeClass("playing")
         addClass(state.trackIndex, "paused")
         player.pause()
@@ -422,6 +423,7 @@ async function init(state, emitter) {
 }
 
 function addClass(index, cssClass) {
+    console.log(`to track-${index} add ${cssClass}`)
     document.getElementById(`track-${index}`).classList.add(cssClass)
 }
 
@@ -490,10 +492,36 @@ function pad(num, size) {
     return s;
 }
 
-function normalizeArchive(str) {     
-    // remove trailing slash
-    return str.replace(/\/$/, "")
-} 
+console.log(normalizeArchive("dat://47fe02a7bc5022f755d2421a2f7b9af441286ee4120b1a8186de4411b9c68f1b/"))
+// thx to 0xade & rotonde for this wonderful function <3
+function normalizeArchive(url) {     
+  if (!url)
+    return null;
+
+  // This is microoptimized heavily because it's called often.
+  // "Make slow things fast" applies here, but not literally:
+  // "Make medium-fast things being called very often even faster."
+  
+  if (
+    url.length > 6 &&
+    url[0] == 'd' && url[1] == 'a' && url[2] == 't' && url[3] == ':'
+  )
+    // We check if length > 6 but remove 4.
+    // The other 2 will be removed below.
+    url = url.substring(4);
+  
+  if (
+    url.length > 2 &&
+    url[0] == '/' && url[1] == '/'
+  )
+    url = url.substring(2);
+
+  var index = url.indexOf("/");
+  url = index == -1 ? url : url.substring(0, index);
+
+  url = url.toLowerCase().trim();
+  return url;
+}
 
 function savePlaylist(name, state) {
     return archive.writeFile(`playlists/${name}.json`, JSON.stringify({
@@ -514,12 +542,16 @@ function inputHandler(state, emitter) {
                 if (isTrack(msg)) {
                     state.tracks.push(msg)
                 } else {
+                    var url = normalizeArchive(msg)
+                    if (!url || url.length != 64) {
+                        return
+                    }
                     // assume it's a dat archive folder, and try to read its contents
                     var a = new DatArchive(msg)
                     console.log("assuming a folder full of stuff!")
                     a.readdir("/").then((dir) => {
                         dir.filter((i) => isTrack(i)).map((i) => {
-                            var p = normalizeArchive(msg) + "/" + i
+                            var p = `dat://${url}/${i}`
                             state.tracks.push(p)
                         })
                         emitter.emit("render")
