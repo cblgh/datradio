@@ -197,14 +197,27 @@ var commands = {
     }
 }
 
-async function loadTracks(state, emit, playlist) {
-    if (playlist) {
-        var p = JSON.parse(await archive.readFile(`playlists/${playlist}`))
-        state.tracks = p.tracks
-    }
+async function loadTracks(playlist) {
+    var tracks = []
+    return new Promise((resolve, reject) => {
+        if (playlist) {
+            var promises = playlist.archives.map((address) => {
+                return new Promise((res1, rej1) => {
+                    var a = new DatArchive(address)
+                    var files = await a.readdir("/")
+                    var newTracks = files.filter((i) => isTrack(i))
+                    tracks = tracks.concat(newTracks)
+                    res1()
+                })
+            })
+            await Promise.all(promises)
+            resolve(tracks)
+        }
+    })
 }
 
-function deletePlaylist(name) {
+
+async function deletePlaylist(name) {
     return await archive.unlink(`playlists/${name}.json`)
 }
 
@@ -361,10 +374,13 @@ async function init(state, emitter) {
     loadPlaylist(archive, initialPlaylist)
 
     async function loadPlaylist(playlistArchive, path) {
+        console.log(path)
         // try to load the user's playlist
         try {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
-            state.tracks = playlist.tracks
+            console.log(playlist)
+            console.log(playlist.archives)
+            state.tracks = await loadTracks(playlist)
             state.profile = playlist.profile
             state.description = playlist.description
             emitter.emit("render")
