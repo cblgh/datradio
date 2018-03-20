@@ -326,6 +326,19 @@ async function loadPlaylists() {
     return playlists
 }
 
+function prefix(url, path) {
+    if (path) {
+        if (url.substr(-1) != "/") {
+            url += "/"
+        }
+        url += path
+    }
+    if (url.substr(0, 6) != "dat://") {
+        return `dat://${url}/`
+    }
+    return url
+}
+
 async function init(state, emitter) {
     reset(state)
     state.playlists = []
@@ -342,9 +355,7 @@ async function init(state, emitter) {
 
     var followUrls = JSON.parse(await archive.readFile("profile.json")).following
     state.following = await Promise.all(followUrls.map((url) => extractSub(url)))
-    console.log("pls fix playlists")
     state.playlists = await loadPlaylists() 
-    console.log("why u no work")
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
     // initialize the state with the default playlist
     loadPlaylist(archive, initialPlaylist)
@@ -551,7 +562,7 @@ function inputHandler(state, emitter) {
                     console.log("assuming a folder full of stuff!")
                     a.readdir("/").then((dir) => {
                         dir.filter((i) => isTrack(i)).map((i) => {
-                            var p = `dat://${url}/${i}`
+                            var p = prefix(url, i)
                             state.tracks.push(p)
                         })
                         emitter.emit("render")
