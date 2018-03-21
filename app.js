@@ -61,7 +61,7 @@ var commands = {
             state.playlists.push(value)
             window.location.hash = value
             reset(state)
-            savePlaylist(value, state)
+            savePlaylist(state, value)
             .then(() => {
                 save(state)
                 emit.emit("render")
@@ -104,7 +104,7 @@ var commands = {
             if (value) {
                 var oldPlaylist = state.params.playlist
                 state.playlists.splice(state.playlists.indexOf(oldPlaylist), 1)
-                savePlaylist(value, state).then(() => {
+                savePlaylist(state, value).then(() => {
                     deletePlaylist(oldPlaylist)
                     .then(loadPlaylists)
                     .then((playlists) => {
@@ -197,11 +197,12 @@ var commands = {
     }
 }
 
-async function loadTracks(playlist) {
+async function loadTracks(archives) {
     var tracks = []
     return new Promise((resolve, reject) => {
-        if (playlist) {
-            var promises = playlist.archives.map((address) => {
+        // TODO: refactor/clean this?
+        if (archives) {
+            var promises = archives.map((address) => {
                 return new Promise((res1, rej1) => {
                     var a = new DatArchive(address)
                     var files = await a.readdir("/")
@@ -215,7 +216,6 @@ async function loadTracks(playlist) {
         }
     })
 }
-
 
 async function deletePlaylist(name) {
     return await archive.unlink(`playlists/${name}.json`)
@@ -347,16 +347,17 @@ function prefix(url, path) {
         url += path
     }
     if (url.substr(0, 6) != "dat://") {
-        return `dat://${url}/`
+        return `dat://${url}`
     }
     return url
 }
 
 async function init(state, emitter) {
     reset(state)
+    state.archives = []
     state.playlists = []
-    state.description = ""
     state.following = []
+    state.description = ""
     setInterval(function() {
         var player = document.getElementById("player")
         if (player) {
@@ -374,18 +375,21 @@ async function init(state, emitter) {
     loadPlaylist(archive, initialPlaylist)
 
     async function loadPlaylist(playlistArchive, path) {
-        console.log(path)
         // try to load the user's playlist
         try {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
-            console.log(playlist)
-            console.log(playlist.archives)
-            state.tracks = await loadTracks(playlist)
             state.profile = playlist.profile
             state.description = playlist.description
+            // render once before loading the tracks
+            // as loading them takes a noticeable time
+            // (might be premature optimization oops :^)
+            emitter.emit("render")
+            state.tracks = await loadTracks(playlist.archives)
+            state.archives = playlist.archives
+            // render again after having loaded the tracks
             emitter.emit("render")
         } catch (e) {
-            console.error("failed to read playlist.json; malformed json?")
+            console.error("failed to read playlist's json; malformed json?")
             console.error(e)
         }
     }
@@ -434,7 +438,6 @@ async function init(state, emitter) {
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
-
     emitter.on("deleteTrack", function(index) {
         var emitNextTrack = false
         state.trackIndex = parseInt(state.trackIndex)
@@ -480,7 +483,7 @@ function playTrack(track, index) {
 
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
-    savePlaylist(state.params.playlist, state)
+    savePlaylist(state, state.params.playlist)
     archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", following: state.following.map((o) => o.link)}, null, 2))
 }
 
@@ -507,7 +510,6 @@ function extractPlaylist(input) {
     return playlistName
 }
 
-
 var audioRegexp = new RegExp("\.[wav|ogg|mp3]$")
 function isTrack(msg) {
     return audioRegexp.test(msg)
@@ -519,7 +521,6 @@ function pad(num, size) {
     return s;
 }
 
-console.log(normalizeArchive("dat://47fe02a7bc5022f755d2421a2f7b9af441286ee4120b1a8186de4411b9c68f1b/"))
 // thx to 0xade & rotonde for this wonderful function <3
 function normalizeArchive(url) {     
   if (!url)
@@ -550,9 +551,9 @@ function normalizeArchive(url) {
   return url;
 }
 
-function savePlaylist(name, state) {
+function savePlaylist(state, name) {
     return archive.writeFile(`playlists/${name}.json`, JSON.stringify({
-        tracks: state.tracks, 
+        archives: state.archives, 
         description: state.description,
         profile: state.profile}, null, 2))
 }
@@ -566,28 +567,26 @@ function inputHandler(state, emitter) {
                 var val = sep >= 0 ? msg.substr(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
-                if (isTrack(msg)) {
-                    state.tracks.push(msg)
-                } else {
-                    var url = normalizeArchive(msg)
-                    if (!url || url.length != 64) {
-                        return
-                    }
-                    // assume it's a dat archive folder, and try to read its contents
-                    var a = new DatArchive(msg)
-                    console.log("assuming a folder full of stuff!")
-                    a.readdir("/").then((dir) => {
-                        dir.filter((i) => isTrack(i)).map((i) => {
-                            var p = prefix(url, i)
-                            state.tracks.push(p)
-                        })
-                        emitter.emit("render")
-                        save(state)
-                    })
+                var url = normalizeArchive(msg)
+                if (!url || url.length != 64) {
+                    return
                 }
-                save(state)
-                emitter.emit("render")
+                // assume it's a dat archive folder, and try to read its contents
+                var a = new DatArchive(msg)
+                if (state.archives.indexOf(msg) < 0) {
+                    state.archives.push(msg)
+                }
+                a.readdir("/").then((dir) => {
+                    dir.filter((i) => isTrack(i)).map((i) => {
+                        var p = prefix(url, i)
+                        state.tracks.push(p)
+                    })
+                    emitter.emit("render")
+                    save(state)
+                })
             }
+            save(state)
+            emitter.emit("render")
         }
     })
 
