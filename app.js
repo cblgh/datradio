@@ -68,6 +68,13 @@ var commands = {
             })
         }
     },
+    "rand": {
+        value: "",
+        desc: "play a random track",
+        call: function(state, emit, value) {
+            emit.emit("randTrack")
+        }
+    },
     "desc": {
         value: "<description>",
         desc: "a description of this playlist",
@@ -207,6 +214,7 @@ async function loadTracks(archives) {
                     var a = new DatArchive(address)
                     var files = await a.readdir("/")
                     var newTracks = files.filter((i) => isTrack(i))
+                        .map((t) => prefix(address, t))
                     tracks = tracks.concat(newTracks)
                     res1()
                 })
@@ -302,6 +310,7 @@ function mainView(state, emit) {
         if (document.activeElement != term) {
             if (e.key === "n") { emit("nextTrack") }
             else if (e.key === "p") { emit("previousTrack") }
+            else if (e.key === "r") { emit("randTrack") }
             else if (e.key === " ") { 
                 if (player.paused) emit("resumeTrack")
                 else emit("pauseTrack")
@@ -409,6 +418,11 @@ async function init(state, emitter) {
         playTrack(state.tracks[index], index)
     })
 
+    emitter.on("randTrack", function() {
+        var index = Math.floor(Math.random() * state.tracks.length)
+        emitter.emit("playTrack", index)
+    })
+
     emitter.on("resumeTrack", function() {
         var player = document.getElementById("player")
         removeClass("paused")
@@ -427,7 +441,7 @@ async function init(state, emitter) {
     emitter.on("nextTrack", function() {
         // TODO: add logic for shuffle :)
         console.log("b4, track index is: " + state.trackIndex)
-        state.trackIndex = (state.trackIndex + 1) % state.tracks.length 
+        state.trackIndex = (stat.trackIndex + 1) % state.tracks.length 
         console.log("after, track index is: " + state.trackIndex)
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
@@ -577,7 +591,7 @@ function inputHandler(state, emitter) {
                     state.archives.push(msg)
                 }
                 a.readdir("/").then((dir) => {
-                    dir.filter((i) => isTrack(i)).map((i) => {
+                    dir.filter((i) => isTrack(i)).forEach((i) => {
                         var p = prefix(url, i)
                         state.tracks.push(p)
                     })
