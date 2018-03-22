@@ -34,21 +34,21 @@ function format(durationStr) {
 class Counter extends Nanocomponent {
     constructor() {
         super()
-        this.current = "--:--"
+        this.time = "--:--"
         this.duration = "--:--"
     }
 
     createElement(time, duration) {
-        this.current = time
+        this.time = time
         this.duration = duration
-        return html`<div id="time">${format(this.current)}/${format(this.duration)}</div>`
+        return html`<div id="time">${format(this.time)}/${format(this.duration)}</div>`
     }
     
     update(time, duration) {
         console.log("nanocomponent update - time:", time)
         time = format(time)
         duration = format(duration)
-        return time != this.current || duration != this.duration
+        return time != this.time || duration != this.duration
     }
 }
 
@@ -340,6 +340,8 @@ function reset(state) {
     state.duration = 0
     state.trackIndex = 0
     state.tracks = []
+    state.archives = []
+    state.description = ""
     state.profile = {bg: "black", color: "#f2f2f2"}
 }
 
@@ -350,6 +352,7 @@ async function loadPlaylists() {
 
 function prefix(url, path) {
     if (path) {
+        // append /
         if (url.substr(-1) != "/") {
             url += "/"
         }
@@ -363,10 +366,8 @@ function prefix(url, path) {
 
 async function init(state, emitter) {
     reset(state)
-    state.archives = []
     state.playlists = []
     state.following = []
-    state.description = ""
     setInterval(function() {
         var player = document.getElementById("player")
         if (player) {
