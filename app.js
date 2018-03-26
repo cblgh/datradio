@@ -75,6 +75,14 @@ var commands = {
             emit.emit("randTrack")
         }
     },
+    "mv": {
+        value: "trackIndex newIndex",
+        desc: "move a track in the current playlist",
+        call: function(state, emit, value) {
+            var [src, dst] = value.split(/\W+/g)
+            emit.emit("moveTrack", src, dst)
+        }
+    },
     "desc": {
         value: "<description>",
         desc: "a description of this playlist",
@@ -204,17 +212,21 @@ var commands = {
     }
 }
 
-async function loadTracks(archives) {
-    var tracks = []
+async function loadTracks(playlist) {
+    var tracks = playlist.tracks
+    console.log(tracks)
     return new Promise((resolve, reject) => {
         // TODO: refactor/clean this?
-        if (archives) {
-            var promises = archives.map((address) => {
+        if (playlist) {
+            var promises = playlist.archives.map((address) => {
                 return new Promise((res1, rej1) => {
                     var a = new DatArchive(address)
                     var files = await a.readdir("/")
                     var newTracks = files.filter((i) => isTrack(i))
-                        .map((t) => prefix(address, t))
+                        .map((i) => prefix(address, i))
+                        .filter((i) => {
+                            return playlist.removed.indexOf(i) < 0 && tracks.indexOf(i) < 0
+                        })
                     tracks = tracks.concat(newTracks)
                     res1()
                 })
@@ -340,6 +352,7 @@ function reset(state) {
     state.duration = 0
     state.trackIndex = 0
     state.tracks = []
+    state.removed = []
     state.archives = []
     state.description = ""
     state.profile = {bg: "black", color: "#f2f2f2"}
@@ -390,12 +403,14 @@ async function init(state, emitter) {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
             state.profile = playlist.profile
             state.description = playlist.description
+            state.archives = playlist.archives
+            state.removed = playlist.removed
             // render once before loading the tracks
             // as loading them takes a noticeable time
             // (might be premature optimization oops :^)
             emitter.emit("render")
-            state.tracks = await loadTracks(playlist.archives)
-            state.archives = playlist.archives
+            state.tracks = await loadTracks(playlist)
+            save(state)
             // render again after having loaded the tracks
             emitter.emit("render")
         } catch (e) {
@@ -453,11 +468,20 @@ async function init(state, emitter) {
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
+    emitter.on("moveTrack", function(srcIndex, dstIndex) {
+        console.log(`move from ${srcIndex} to ${dstIndex}`)
+        var track = state.tracks.splice(srcIndex, 1)[0]
+        state.tracks.splice(dstIndex, 0, track)
+        emitter.emit("render")
+    })
+
     emitter.on("deleteTrack", function(index) {
         var emitNextTrack = false
         state.trackIndex = parseInt(state.trackIndex)
         index = parseInt(index)
-        state.tracks.splice(index, 1)
+        var removedTrack = state.tracks.splice(index, 1)[0]
+        state.removed.push(removedTrack)
+        save(state)
         if (state.trackIndex >= index) {
             var emitNextTrack = (state.trackIndex === index && state.tracks.length > 0)
             state.trackIndex = state.trackIndex - 1
@@ -569,6 +593,8 @@ function normalizeArchive(url) {
 function savePlaylist(state, name) {
     return archive.writeFile(`playlists/${name}.json`, JSON.stringify({
         archives: state.archives, 
+        tracks: state.tracks,
+        removed: state.removed,
         description: state.description,
         profile: state.profile}, null, 2))
 }
