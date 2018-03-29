@@ -20,8 +20,8 @@ app.route("/:playlist", mainView)
 app.mount("body")
 
 // fix modulo for negative integers
-Number.prototype.mod = function(n) {
-        return ((this%n)+n)%n;
+function mod(n, m) {
+      return ((n % m) + m) % m;
 }
 
 function format(durationStr) {
@@ -75,6 +75,12 @@ var commands = {
             state.user.name = value
         }
     },
+    // "clear": {
+    //     value: "'yes i want to clear everything'",
+    //     desc: "remove all playlists and user info",
+    //     call: function(state, emit, value) {
+    //     }
+    // },
     "rand": {
         value: "",
         desc: "play a random track",
@@ -267,6 +273,7 @@ function mainView(state, emit) {
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
+            <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
             <div id="grid-container">
                 <ul id="playlists">
                     <h3>${state.user.name}s playlists </h3>
@@ -276,7 +283,7 @@ function mainView(state, emit) {
                 <div class="center">
                     <h1 id="title">${title} (${playlistName})</h1>
                     <div id="description">${state.description}</div>
-                    ${createTerminal(state.isOwner)} 
+                    <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
                     <ul id="tracks">
                     ${state.tracks.map(createTrack)}
                     </ul>
@@ -296,11 +303,10 @@ function mainView(state, emit) {
                     emit("resumeTrack")
     }
 
-    function createTerminal(showTerm) {
-        if (showTerm) {
-            return html`<input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>`
+    function addForkUrl(isOwner) {
+        if (!isOwner) {
+            return html``
         }
-        return html`<a class="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</a>`
     }
 
     function createTrack(track, index) {
@@ -339,6 +345,7 @@ function mainView(state, emit) {
             else if (e.key === "p") { emit("previousTrack") }
             else if (e.key === "r") { emit("randTrack") }
             else if (e.key === " ") { 
+                e.preventDefault()
                 if (player.paused) emit("resumeTrack")
                 else emit("pauseTrack")
             }
@@ -479,14 +486,14 @@ async function init(state, emitter) {
     emitter.on("nextTrack", function() {
         // TODO: add logic for shuffle :)
         console.log("b4, track index is: " + state.trackIndex)
-        state.trackIndex = (stat.trackIndex + 1) % state.tracks.length 
+        state.trackIndex = mod((state.trackIndex + 1), state.tracks.length)
         console.log("after, track index is: " + state.trackIndex)
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
     emitter.on("previousTrack", function() {
         // TODO: add logic for shuffle :)
-        state.trackIndex = (state.trackIndex - 1) % state.tracks.length 
+        state.trackIndex = mod((state.trackIndex - 1), state.tracks.length) 
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
@@ -641,7 +648,6 @@ function inputHandler(state, emitter) {
                 var a = new DatArchive(msg)
                 // length of dat:// + hash = 70
                 var path = msg.substr(70) || "/"
-                console.log("inputhandler: added path", path)
                 if (state.archives.indexOf(msg) < 0) {
                     state.archives.push(msg)
                 }

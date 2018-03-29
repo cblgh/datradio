@@ -24,14 +24,14 @@ a:visited {
     text-decoration: none;
 }
 
-#playlists a, .fork-url {
+#playlists a, #fork-url {
     opacity: 1;
     color: inherit;
     text-decoration: none;
     transition: opacity 0.4;
 }
 
-#playlists a:hover {
+#playlists a:hover, #fork-url:hover {
     cursor: pointer;
     opacity: 0.6 !important;
     transition: opacity 0.4;
@@ -119,6 +119,13 @@ a:visited {
 
 #description {
     grid-area: description;
+}
+
+#fork-url {
+    display: block;
+    position: absolute;
+    top: 10px;
+    left: 45px;
 }
 
 .center {
