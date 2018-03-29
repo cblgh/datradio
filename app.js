@@ -68,6 +68,13 @@ var commands = {
             })
         }
     },
+    "nick": {
+        value: "<your nickname>",
+        desc: "sets the name of your profile",
+        call: function(state, emit, value) {
+            state.user.name = value
+        }
+    },
     "rand": {
         value: "",
         desc: "play a random track",
@@ -218,6 +225,7 @@ async function loadTracks(playlist) {
     return new Promise((resolve, reject) => {
         // TODO: refactor/clean this?
         if (playlist) {
+            console.log("playlist", playlist, "archives", playlist.archives)
             var promises = playlist.archives.map((address) => {
                 return new Promise((res1, rej1) => {
                     var a = new DatArchive(address)
@@ -255,13 +263,13 @@ function createHelpSidebar() {
 
 var counter = new Counter()
 function mainView(state, emit) {
-    emit("DOMTitleChange", title)
+    emit("DOMTitleChange", title + `/${state.user.name}`)
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
                 <ul id="playlists">
-                    <h3> playlists </h3>
+                    <h3>${state.user.name}'s playlists </h3>
                     ${state.playlists.map(createPlaylistEl)}
                     ${state.following.map(createPlaylistSub)}
                 </ul>
@@ -381,6 +389,7 @@ async function init(state, emitter) {
     reset(state)
     state.playlists = []
     state.following = []
+    state.user = {}
     setInterval(function() {
         var player = document.getElementById("player")
         if (player) {
@@ -390,8 +399,8 @@ async function init(state, emitter) {
         counter.render(state.time, state.duration)
     }, 1000)
 
-    var followUrls = JSON.parse(await archive.readFile("profile.json")).following
-    state.following = await Promise.all(followUrls.map((url) => extractSub(url)))
+    state.user = JSON.parse(await archive.readFile("profile.json"))
+    state.following = await Promise.all(state.user.following.map((url) => extractSub(url)))
     state.playlists = await loadPlaylists() 
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
     // initialize the state with the default playlist
@@ -523,7 +532,9 @@ function playTrack(track, index) {
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
     savePlaylist(state, state.params.playlist)
-    archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", following: state.following.map((o) => o.link)}, null, 2))
+    archive.writeFile(`profile.json`, JSON.stringify(
+        {name: state.user.name, following: state.following.map((o) => o.link)},
+    null, 2))
 }
 
 async function extractSub(url) {
