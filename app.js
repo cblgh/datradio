@@ -221,7 +221,6 @@ var commands = {
 
 async function loadTracks(playlist) {
     var tracks = playlist.tracks
-    console.log(tracks)
     return new Promise((resolve, reject) => {
         // TODO: refactor/clean this?
         if (playlist) {
@@ -269,7 +268,7 @@ function mainView(state, emit) {
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
                 <ul id="playlists">
-                    <h3>${state.user.name}'s playlists </h3>
+                    <h3>${state.user.name}s playlists </h3>
                     ${state.playlists.map(createPlaylistEl)}
                     ${state.following.map(createPlaylistSub)}
                 </ul>
@@ -624,11 +623,15 @@ function inputHandler(state, emitter) {
                     return
                 }
                 // assume it's a dat archive folder, and try to read its contents
+
                 var a = new DatArchive(msg)
+                // length of dat:// + hash = 70
+                var path = msg.substr(70) || "/"
+                console.log("inputhandler: added path", path)
                 if (state.archives.indexOf(msg) < 0) {
                     state.archives.push(msg)
                 }
-                a.readdir("/").then((dir) => {
+                a.readdir(path).then((dir) => {
                     dir.filter((i) => isTrack(i)).forEach((i) => {
                         var p = prefix(url, i)
                         state.tracks.push(p)
