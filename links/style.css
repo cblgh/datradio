@@ -38,14 +38,18 @@ a:visited {
     border-bottom-style: solid;
 }
 
-.help-container {
+.help-container, .hotkey-container {
     padding-bottom: 15px;
     font-size: 9pt;
+}
+.hotkey-container {
+    padding-bottom: 0;
 }
 .help-cmd:before {
     content: ".";
 }
-.help-cmd, .help-value {
+
+.help-cmd, .help-value, .help-hotkey {
     display: inline-block;
     padding-right: 10px;
 }

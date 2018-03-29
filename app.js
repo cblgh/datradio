@@ -52,7 +52,52 @@ class Counter extends Nanocomponent {
     }
 }
 
+var hotkeySheet = {
+    "toggle play/pause": {
+        key: "spacebar",
+    },
+    "next track": {
+        key: "n",
+    },
+    "previous track": {
+        key: "p",
+    },
+    "random track": {
+        key: "r",
+    }
+}
+
 var commands = {
+    "bg": {
+        value: "#1d1d1d",
+        desc: "change the background colour",
+        call: function(state, emit, value) {
+            state.profile.bg = value
+        }
+    },
+    "color": {
+        value:  "#f2f2f2",
+        desc: "change the font colour",
+        call: function(state, emit, value) {
+            state.profile.color = value
+        }
+    },
+    "nick": {
+        value: "<your nickname>",
+        desc: "sets the name of your profile",
+        call: function(state, emit, value) {
+            state.user.name = value
+        }
+    },
+    "desc": {
+        value: "<description>",
+        desc: "a description of this playlist",
+        call: function(state, emit, value) {
+            state.description = value
+            save(state)
+            emit.emit("render")
+        }
+    },
     "create": {
         value: "playlist-name (no spaces)",
         desc: "create a playlist",
@@ -66,43 +111,6 @@ var commands = {
                 save(state)
                 emit.emit("render")
             })
-        }
-    },
-    "nick": {
-        value: "<your nickname>",
-        desc: "sets the name of your profile",
-        call: function(state, emit, value) {
-            state.user.name = value
-        }
-    },
-    // "clear": {
-    //     value: "'yes i want to clear everything'",
-    //     desc: "remove all playlists and user info",
-    //     call: function(state, emit, value) {
-    //     }
-    // },
-    "rand": {
-        value: "",
-        desc: "play a random track",
-        call: function(state, emit, value) {
-            emit.emit("randTrack")
-        }
-    },
-    "mv": {
-        value: "trackIndex newIndex",
-        desc: "move a track in the current playlist",
-        call: function(state, emit, value) {
-            var [src, dst] = value.split(/\W+/g)
-            emit.emit("moveTrack", src, dst)
-        }
-    },
-    "desc": {
-        value: "<description>",
-        desc: "a description of this playlist",
-        call: function(state, emit, value) {
-            state.description = value
-            save(state)
-            emit.emit("render")
         }
     },
     "delete-playlist": {
@@ -130,7 +138,7 @@ var commands = {
         desc: "rename the current playlist",
         call: function(state, emit, value) {
             if (value) {
-                var oldPlaylist = state.params.playlist
+                var oldPlaylist = state.params.playlist ? state.params.playlist : "playlist"
                 state.playlists.splice(state.playlists.indexOf(oldPlaylist), 1)
                 savePlaylist(state, value).then(() => {
                     deletePlaylist(oldPlaylist)
@@ -142,62 +150,6 @@ var commands = {
                     })
                 })
             }
-        }
-    },
-    "save": {
-        value: "",
-        desc: "[debug] save state",
-        call: function(state, emit, value) {
-            save(state)
-        }
-    },
-    "prev": {
-        value: "",
-        desc: "play the previous track",
-        call: function(state, emit, value) {
-            emit.emit("previousTrack")
-        }
-    },
-    "next": {
-        value: "",
-        desc: "play the next track",
-        call: function(state, emit, value) {
-            emit.emit("nextTrack")
-        }
-    },
-    "del": {
-        value: "track index",
-        desc: "delete track from playlist",
-        call: function(state, emit, value) {
-            emit.emit("deleteTrack", parseInt(value))
-        }
-    },
-    "pause": {
-        value: "",
-        desc: "pause the current track",
-        call: function(state, emit, value) {
-            emit.emit("pauseTrack")
-        }
-    },
-    "play": {
-        value: "track index",
-        desc: "play track",
-        call: function(state, emit, value) {
-            emit.emit("playTrack", parseInt(value))
-        }
-    },
-    "bg": {
-        value: "#1d1d1d",
-        desc: "change the background colour",
-        call: function(state, emit, value) {
-            state.profile.bg = value
-        }
-    },
-    "color": {
-        value:  "#f2f2f2",
-        desc: "change the font colour",
-        call: function(state, emit, value) {
-            state.profile.color = value
         }
     },
     // "unsub": {
@@ -222,7 +174,71 @@ var commands = {
                 save(state)
             })
         }
+    },
+    // "clear": {
+    //     value: "'yes i want to clear everything'",
+    //     desc: "remove all playlists and user info",
+    //     call: function(state, emit, value) {
+    //     }
+    // },
+    // "save": {
+    //     value: "",
+    //     desc: "[debug] save state",
+    //     call: function(state, emit, value) {
+    //         save(state)
+    //     }
+    // },
+    "del": {
+        value: "track index",
+        desc: "delete track from playlist",
+        call: function(state, emit, value) {
+            emit.emit("deleteTrack", parseInt(value))
+        }
+    },
+    "mv": {
+        value: "trackIndex newIndex",
+        desc: "move a track in the current playlist",
+        call: function(state, emit, value) {
+            var [src, dst] = value.split(/\W+/g)
+            emit.emit("moveTrack", src, dst)
+        }
     }
+    // "rand": {
+    //     value: "",
+    //     desc: "play a random track",
+    //     call: function(state, emit, value) {
+    //         emit.emit("randTrack")
+    //     }
+    // },
+    // "next": {
+    //     value: "",
+    //     desc: "play the next track",
+    //     call: function(state, emit, value) {
+    //         emit.emit("nextTrack")
+    //     }
+    // },
+    // "prev": {
+    //     value: "",
+    //     desc: "play the previous track",
+    //     call: function(state, emit, value) {
+    //         emit.emit("previousTrack")
+    //     }
+    // },
+    // "play": {
+    //     value: "track index",
+    //     desc: "play track",
+    //     call: function(state, emit, value) {
+    //         console.log("PLEASE PLAY", parseInt(value))
+    //         emit.emit("playTrack", parseInt(value))
+    //     }
+    // },
+    // "pause": {
+    //     value: "",
+    //     desc: "pause the current track",
+    //     call: function(state, emit, value) {
+    //         emit.emit("pauseTrack")
+    //     }
+    // }
 }
 
 async function loadTracks(playlist) {
@@ -257,14 +273,25 @@ async function deletePlaylist(name) {
 
 function createHelpSidebar() {
     var items = []
+    var hotkeyItems = []
     for (var key in commands) {
         items.push({key: key, cmd: commands[key]})
+    }
+
+    for (var key in hotkeySheet) {
+        hotkeyItems.push({key: key, hotkey: hotkeySheet[key].key})
     }
 
     function createHelpEl(p) {
         return html`<div class="help-container"><div class="help-cmd">${p.key}</div><div class="help-value">${p.cmd.value}</div><div class="help-desc">${p.cmd.desc}</div></div>`
     }
-    return html`<h3 id="commands"><div>commands</div>${items.map(createHelpEl)}</div>`
+
+    function createHotkeyEl(p) {
+        return html`<div class="hotkey-container"><div class="help-hotkey">${p.key} =</div><div class="help-value">${p.hotkey}</div></div>`
+    }
+
+    return html`<h3 id="commands"><div>commands</div><div>${items.map(createHelpEl)}</div>
+       <div>hotkeys</div><div>${hotkeyItems.map(createHotkeyEl)}</div></div>`
 }
 
 var counter = new Counter()
@@ -451,10 +478,11 @@ async function init(state, emitter) {
     // load the playlist we clicked on
     emitter.on("navigate", function()  {
         var arch = archive
+        var playlistName = state.params.playlist ? state.params.playlist : "playlist"
         if (state.route === remoteRoute) {
             arch = new DatArchive(state.params.url)
         }
-        loadPlaylist(arch, `playlists/${state.params.playlist}.json`)
+        loadPlaylist(arch, `playlists/${playlistName}.json`)
     })
 
     emitter.on("playTrack", function(index) {
@@ -550,8 +578,9 @@ function playTrack(track, index) {
 }
 
 async function save(state) {
-    console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
-    savePlaylist(state, state.params.playlist)
+    var playlistName = state.params.playlist ? state.params.playlist : "playlist"
+    console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${playlistName}.json`)
+    savePlaylist(state, playlistName)
     archive.writeFile(`profile.json`, JSON.stringify(
         {name: state.user.name, following: state.following.map((o) => o.link)},
     null, 2))
@@ -668,8 +697,8 @@ function inputHandler(state, emitter) {
     function handleCommand(command, value) {
         if (command in commands) {
             commands[command].call(state, emitter, value)
-            save(state)
             emitter.emit("render")
+            save(state)
         }
     }
 }
