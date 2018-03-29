@@ -180,19 +180,6 @@ var commands = {
             })
         }
     },
-    // "clear": {
-    //     value: "'yes i want to clear everything'",
-    //     desc: "remove all playlists and user info",
-    //     call: function(state, emit, value) {
-    //     }
-    // },
-    // "save": {
-    //     value: "",
-    //     desc: "[debug] save state",
-    //     call: function(state, emit, value) {
-    //         save(state)
-    //     }
-    // },
     "del": {
         value: "track index",
         desc: "delete track from playlist",
@@ -208,42 +195,6 @@ var commands = {
             emit.emit("moveTrack", src, dst)
         }
     }
-    // "rand": {
-    //     value: "",
-    //     desc: "play a random track",
-    //     call: function(state, emit, value) {
-    //         emit.emit("randTrack")
-    //     }
-    // },
-    // "next": {
-    //     value: "",
-    //     desc: "play the next track",
-    //     call: function(state, emit, value) {
-    //         emit.emit("nextTrack")
-    //     }
-    // },
-    // "prev": {
-    //     value: "",
-    //     desc: "play the previous track",
-    //     call: function(state, emit, value) {
-    //         emit.emit("previousTrack")
-    //     }
-    // },
-    // "play": {
-    //     value: "track index",
-    //     desc: "play track",
-    //     call: function(state, emit, value) {
-    //         console.log("PLEASE PLAY", parseInt(value))
-    //         emit.emit("playTrack", parseInt(value))
-    //     }
-    // },
-    // "pause": {
-    //     value: "",
-    //     desc: "pause the current track",
-    //     call: function(state, emit, value) {
-    //         emit.emit("pauseTrack")
-    //     }
-    // }
 }
 
 async function loadTracks(playlist) {
@@ -251,7 +202,6 @@ async function loadTracks(playlist) {
     return new Promise((resolve, reject) => {
         // TODO: refactor/clean this?
         if (playlist) {
-            console.log("playlist", playlist, "archives", playlist.archives)
             var promises = playlist.archives.map((address) => {
                 return new Promise((res1, rej1) => {
                     var a = new DatArchive(address)
@@ -333,12 +283,6 @@ function mainView(state, emit) {
         var player = document.getElementById("player")
         player.style.display = player.style.display == "block" ? "none" : "block"
                     emit("resumeTrack")
-    }
-
-    function addForkUrl(isOwner) {
-        if (!isOwner) {
-            return html``
-        }
     }
 
     function createTrack(track, index) {
@@ -491,7 +435,7 @@ async function init(state, emitter) {
     })
 
     emitter.on("playTrack", function(index) {
-        console.log("playTrack received this index: " + index, typeof index)
+        console.log("playTrack received index: " + index, typeof index)
         state.trackIndex = index
         playTrack(state.tracks[index], index)
     })
@@ -510,7 +454,6 @@ async function init(state, emitter) {
 
     emitter.on("pauseTrack", function() {
         var player = document.getElementById("player")
-        console.log("pauseTrack!!")
         removeClass("playing")
         addClass(state.trackIndex, "paused")
         player.pause()
