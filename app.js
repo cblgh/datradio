@@ -152,18 +152,23 @@ var commands = {
             }
         }
     },
-    // "unsub": {
-    //     value:  "",
-    //     desc: "unsub from current playlist",
-    //     call: function(state, emit, value) {
-    //         console.log("unsub unimplemented")
-    //         var index = state.following.indexOf(value)
-    //         if (index >= 0) {
-    //             state.following.splice(index, index)
-    //             save(state)
-    //         }
-    //     }
-    // },
+    "unsub": {
+        value:  "",
+        desc: "unsub from current playlist",
+        call: function(state, emit, value) {
+            parts = window.location.pathname.split("/remote/")
+            if (parts.length <= 1) {
+                return
+            }
+            value = prefix(parts[1])
+            state.following.forEach((f, index) => {
+                if (f.link === value) {
+                    state.following.splice(index, 1)
+                    return
+                }
+            })
+        }
+    },
     "sub": {
         value: "dat://1337...7331/#playlist-name",
         desc: "subscribe to a playlist",
@@ -602,7 +607,7 @@ async function getProfileName(datUrl) {
 }
 
 function extractPlaylist(input) {
-    var playlistName = input.substr(72)
+    var playlistName = input.substr(71)
     if (playlistName.length === 0) {
         return "playlist"
     }
