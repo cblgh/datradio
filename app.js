@@ -34,21 +34,21 @@ function format(durationStr) {
 class Counter extends Nanocomponent {
     constructor() {
         super()
-        this.current = "--:--"
+        this.time = "--:--"
         this.duration = "--:--"
     }
 
     createElement(time, duration) {
-        this.current = time
+        this.time = time
         this.duration = duration
-        return html`<div id="time">${format(this.current)}/${format(this.duration)}</div>`
+        return html`<div id="time">${format(this.time)}/${format(this.duration)}</div>`
     }
     
     update(time, duration) {
         console.log("nanocomponent update - time:", time)
         time = format(time)
         duration = format(duration)
-        return time != this.current || duration != this.duration
+        return time != this.time || duration != this.duration
     }
 }
 
@@ -61,11 +61,33 @@ var commands = {
             state.playlists.push(value)
             window.location.hash = value
             reset(state)
-            savePlaylist(value, state)
+            savePlaylist(state, value)
             .then(() => {
                 save(state)
                 emit.emit("render")
             })
+        }
+    },
+    "nick": {
+        value: "<your nickname>",
+        desc: "sets the name of your profile",
+        call: function(state, emit, value) {
+            state.user.name = value
+        }
+    },
+    "rand": {
+        value: "",
+        desc: "play a random track",
+        call: function(state, emit, value) {
+            emit.emit("randTrack")
+        }
+    },
+    "mv": {
+        value: "trackIndex newIndex",
+        desc: "move a track in the current playlist",
+        call: function(state, emit, value) {
+            var [src, dst] = value.split(/\W+/g)
+            emit.emit("moveTrack", src, dst)
         }
     },
     "desc": {
@@ -104,7 +126,7 @@ var commands = {
             if (value) {
                 var oldPlaylist = state.params.playlist
                 state.playlists.splice(state.playlists.indexOf(oldPlaylist), 1)
-                savePlaylist(value, state).then(() => {
+                savePlaylist(state, value).then(() => {
                     deletePlaylist(oldPlaylist)
                     .then(loadPlaylists)
                     .then((playlists) => {
@@ -197,14 +219,33 @@ var commands = {
     }
 }
 
-async function loadTracks(state, emit, playlist) {
-    if (playlist) {
-        var p = JSON.parse(await archive.readFile(`playlists/${playlist}`))
-        state.tracks = p.tracks
-    }
+async function loadTracks(playlist) {
+    var tracks = playlist.tracks
+    console.log(tracks)
+    return new Promise((resolve, reject) => {
+        // TODO: refactor/clean this?
+        if (playlist) {
+            console.log("playlist", playlist, "archives", playlist.archives)
+            var promises = playlist.archives.map((address) => {
+                return new Promise((res1, rej1) => {
+                    var a = new DatArchive(address)
+                    var files = await a.readdir("/")
+                    var newTracks = files.filter((i) => isTrack(i))
+                        .map((i) => prefix(address, i))
+                        .filter((i) => {
+                            return playlist.removed.indexOf(i) < 0 && tracks.indexOf(i) < 0
+                        })
+                    tracks = tracks.concat(newTracks)
+                    res1()
+                })
+            })
+            await Promise.all(promises)
+            resolve(tracks)
+        }
+    })
 }
 
-function deletePlaylist(name) {
+async function deletePlaylist(name) {
     return await archive.unlink(`playlists/${name}.json`)
 }
 
@@ -222,13 +263,13 @@ function createHelpSidebar() {
 
 var counter = new Counter()
 function mainView(state, emit) {
-    emit("DOMTitleChange", title)
+    emit("DOMTitleChange", title + `/${state.user.name}`)
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <div id="grid-container">
                 <ul id="playlists">
-                    <h3> playlists </h3>
+                    <h3>${state.user.name}'s playlists </h3>
                     ${state.playlists.map(createPlaylistEl)}
                     ${state.following.map(createPlaylistSub)}
                 </ul>
@@ -289,6 +330,7 @@ function mainView(state, emit) {
         if (document.activeElement != term) {
             if (e.key === "n") { emit("nextTrack") }
             else if (e.key === "p") { emit("previousTrack") }
+            else if (e.key === "r") { emit("randTrack") }
             else if (e.key === " ") { 
                 if (player.paused) emit("resumeTrack")
                 else emit("pauseTrack")
@@ -318,6 +360,9 @@ function reset(state) {
     state.duration = 0
     state.trackIndex = 0
     state.tracks = []
+    state.removed = []
+    state.archives = []
+    state.description = ""
     state.profile = {bg: "black", color: "#f2f2f2"}
 }
 
@@ -326,11 +371,25 @@ async function loadPlaylists() {
     return playlists
 }
 
+function prefix(url, path) {
+    if (path) {
+        // append /
+        if (url.substr(-1) != "/") {
+            url += "/"
+        }
+        url += path
+    }
+    if (url.substr(0, 6) != "dat://") {
+        return `dat://${url}`
+    }
+    return url
+}
+
 async function init(state, emitter) {
     reset(state)
     state.playlists = []
-    state.description = ""
     state.following = []
+    state.user = {}
     setInterval(function() {
         var player = document.getElementById("player")
         if (player) {
@@ -340,11 +399,9 @@ async function init(state, emitter) {
         counter.render(state.time, state.duration)
     }, 1000)
 
-    var followUrls = JSON.parse(await archive.readFile("profile.json")).following
-    state.following = await Promise.all(followUrls.map((url) => extractSub(url)))
-    console.log("pls fix playlists")
+    state.user = JSON.parse(await archive.readFile("profile.json"))
+    state.following = await Promise.all(state.user.following.map((url) => extractSub(url)))
     state.playlists = await loadPlaylists() 
-    console.log("why u no work")
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
     // initialize the state with the default playlist
     loadPlaylist(archive, initialPlaylist)
@@ -353,12 +410,20 @@ async function init(state, emitter) {
         // try to load the user's playlist
         try {
             var playlist = JSON.parse(await playlistArchive.readFile(path))
-            state.tracks = playlist.tracks
             state.profile = playlist.profile
             state.description = playlist.description
+            state.archives = playlist.archives
+            state.removed = playlist.removed
+            // render once before loading the tracks
+            // as loading them takes a noticeable time
+            // (might be premature optimization oops :^)
+            emitter.emit("render")
+            state.tracks = await loadTracks(playlist)
+            save(state)
+            // render again after having loaded the tracks
             emitter.emit("render")
         } catch (e) {
-            console.error("failed to read playlist.json; malformed json?")
+            console.error("failed to read playlist's json; malformed json?")
             console.error(e)
         }
     }
@@ -376,6 +441,11 @@ async function init(state, emitter) {
         console.log("playTrack received this index: " + index, typeof index)
         state.trackIndex = index
         playTrack(state.tracks[index], index)
+    })
+
+    emitter.on("randTrack", function() {
+        var index = Math.floor(Math.random() * state.tracks.length)
+        emitter.emit("playTrack", index)
     })
 
     emitter.on("resumeTrack", function() {
@@ -396,7 +466,7 @@ async function init(state, emitter) {
     emitter.on("nextTrack", function() {
         // TODO: add logic for shuffle :)
         console.log("b4, track index is: " + state.trackIndex)
-        state.trackIndex = (state.trackIndex + 1) % state.tracks.length 
+        state.trackIndex = (stat.trackIndex + 1) % state.tracks.length 
         console.log("after, track index is: " + state.trackIndex)
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
@@ -407,12 +477,20 @@ async function init(state, emitter) {
         playTrack(state.tracks[state.trackIndex], state.trackIndex)
     })
 
+    emitter.on("moveTrack", function(srcIndex, dstIndex) {
+        console.log(`move from ${srcIndex} to ${dstIndex}`)
+        var track = state.tracks.splice(srcIndex, 1)[0]
+        state.tracks.splice(dstIndex, 0, track)
+        emitter.emit("render")
+    })
 
     emitter.on("deleteTrack", function(index) {
         var emitNextTrack = false
         state.trackIndex = parseInt(state.trackIndex)
         index = parseInt(index)
-        state.tracks.splice(index, 1)
+        var removedTrack = state.tracks.splice(index, 1)[0]
+        state.removed.push(removedTrack)
+        save(state)
         if (state.trackIndex >= index) {
             var emitNextTrack = (state.trackIndex === index && state.tracks.length > 0)
             state.trackIndex = state.trackIndex - 1
@@ -453,8 +531,10 @@ function playTrack(track, index) {
 
 async function save(state) {
     console.log(`saving ${state.tracks[state.tracks.length - 1]} to ${state.params.playlist}.json`)
-    savePlaylist(state.params.playlist, state)
-    archive.writeFile(`profile.json`, JSON.stringify({name: "cpt.placeholder", following: state.following.map((o) => o.link)}, null, 2))
+    savePlaylist(state, state.params.playlist)
+    archive.writeFile(`profile.json`, JSON.stringify(
+        {name: state.user.name, following: state.following.map((o) => o.link)},
+    null, 2))
 }
 
 async function extractSub(url) {
@@ -480,7 +560,6 @@ function extractPlaylist(input) {
     return playlistName
 }
 
-
 var audioRegexp = new RegExp("\.[wav|ogg|mp3]$")
 function isTrack(msg) {
     return audioRegexp.test(msg)
@@ -492,7 +571,6 @@ function pad(num, size) {
     return s;
 }
 
-console.log(normalizeArchive("dat://47fe02a7bc5022f755d2421a2f7b9af441286ee4120b1a8186de4411b9c68f1b/"))
 // thx to 0xade & rotonde for this wonderful function <3
 function normalizeArchive(url) {     
   if (!url)
@@ -523,9 +601,11 @@ function normalizeArchive(url) {
   return url;
 }
 
-function savePlaylist(name, state) {
+function savePlaylist(state, name) {
     return archive.writeFile(`playlists/${name}.json`, JSON.stringify({
-        tracks: state.tracks, 
+        archives: state.archives, 
+        tracks: state.tracks,
+        removed: state.removed,
         description: state.description,
         profile: state.profile}, null, 2))
 }
@@ -539,28 +619,26 @@ function inputHandler(state, emitter) {
                 var val = sep >= 0 ? msg.substr(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
-                if (isTrack(msg)) {
-                    state.tracks.push(msg)
-                } else {
-                    var url = normalizeArchive(msg)
-                    if (!url || url.length != 64) {
-                        return
-                    }
-                    // assume it's a dat archive folder, and try to read its contents
-                    var a = new DatArchive(msg)
-                    console.log("assuming a folder full of stuff!")
-                    a.readdir("/").then((dir) => {
-                        dir.filter((i) => isTrack(i)).map((i) => {
-                            var p = `dat://${url}/${i}`
-                            state.tracks.push(p)
-                        })
-                        emitter.emit("render")
-                        save(state)
-                    })
+                var url = normalizeArchive(msg)
+                if (!url || url.length != 64) {
+                    return
                 }
-                save(state)
-                emitter.emit("render")
+                // assume it's a dat archive folder, and try to read its contents
+                var a = new DatArchive(msg)
+                if (state.archives.indexOf(msg) < 0) {
+                    state.archives.push(msg)
+                }
+                a.readdir("/").then((dir) => {
+                    dir.filter((i) => isTrack(i)).forEach((i) => {
+                        var p = prefix(url, i)
+                        state.tracks.push(p)
+                    })
+                    emitter.emit("render")
+                    save(state)
+                })
             }
+            save(state)
+            emitter.emit("render")
         }
     })
 
