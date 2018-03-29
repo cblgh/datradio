@@ -276,7 +276,7 @@ function mainView(state, emit) {
                 <div class="center">
                     <h1 id="title">${title} (${playlistName})</h1>
                     <div id="description">${state.description}</div>
-                    <input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>
+                    ${createTerminal(state.isOwner)} 
                     <ul id="tracks">
                     ${state.tracks.map(createTrack)}
                     </ul>
@@ -295,7 +295,14 @@ function mainView(state, emit) {
         player.style.display = player.style.display == "block" ? "none" : "block"
                     emit("resumeTrack")
     }
-    
+
+    function createTerminal(showTerm) {
+        if (showTerm) {
+            return html`<input id="terminal" placeholder="i love tracks" onkeydown=${keydown}>`
+        }
+        return html`<a class="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</a>`
+    }
+
     function createTrack(track, index) {
         var parts = track.split("/")
         var title = parts[parts.length - 1].trim()
@@ -390,6 +397,7 @@ async function init(state, emitter) {
     state.playlists = []
     state.following = []
     state.user = {}
+    state.isOwner = false
     setInterval(function() {
         var player = document.getElementById("player")
         if (player) {
@@ -398,6 +406,11 @@ async function init(state, emitter) {
         }
         counter.render(state.time, state.duration)
     }, 1000)
+
+    archive.getInfo().then((info) => {
+        state.isOwner = info.isOwner
+        emitter.emit("render")
+    })
 
     state.user = JSON.parse(await archive.readFile("profile.json"))
     state.following = await Promise.all(state.user.following.map((url) => extractSub(url)))
