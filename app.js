@@ -228,7 +228,8 @@ async function loadTracks(playlist) {
             var promises = playlist.archives.map((address) => {
                 return new Promise((res1, rej1) => {
                     var a = new DatArchive(address)
-                    var files = await a.readdir("/")
+                    var path = address.substr(70) || "/"
+                    var files = await a.readdir(path)
                     var newTracks = files.filter((i) => isTrack(i))
                         .map((i) => prefix(address, i))
                         .filter((i) => {
