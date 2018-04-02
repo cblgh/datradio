@@ -13,6 +13,72 @@ li {
     list-style: none;
 }
 
+/* MODAL STUFF */
+#info-modal {
+    display: grid;
+    position: absolute;
+    background: inherit;
+    width: 700px;
+    height: 500px;
+    padding: 50px;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+
+    grid-template-rows: 0px 0px 40px 60px 1fr;
+
+    grid-template-areas: 
+    "modal-close"
+    "modal-header"
+    "modal-title"
+    "modal-archive"
+    "modal-text"
+}
+
+#info-close {
+    grid-area: modal-close;
+    justify-self: right;
+    /* text-align: right; */
+    cursor: pointer;
+}
+
+#info-title {
+    grid-area: modal-title;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+}
+
+
+#info-archive {
+    grid-area: modal-archive;
+    display: inline-block;
+}
+
+#info-text {
+    grid-area: modal-text;
+}
+
+#info-text pre {
+    margin: 0;
+}
+
+
+/* TRACK STUFF */
+.track-title {
+    display: inline-block;
+}
+
+.track-link {
+    display: inline-block;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.track-link-disabled {
+    text-decoration: line-through !important;
+}
+
 #tracks li:hover {
     cursor: pointer;
     opacity: 0.6 !important;

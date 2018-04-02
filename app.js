@@ -256,9 +256,10 @@ function mainView(state, emit) {
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
+            ${createInfoModal()}
             <div id="grid-container">
                 <ul id="playlists">
-                    <h3>${state.user.name}s playlists </h3>
+                    <h3>${state.user.name}'s playlists </h3>
                     ${state.playlists.map(createPlaylistEl)}
                     ${state.following.map(createPlaylistSub)}
                 </ul>
@@ -278,6 +279,7 @@ function mainView(state, emit) {
             </div>
         </body>
         `
+    // '
 
     function togglePlayer() {
         var player = document.getElementById("player")
@@ -288,7 +290,18 @@ function mainView(state, emit) {
     function createTrack(track, index) {
         var parts = track.split("/")
         var title = parts[parts.length - 1].trim()
-        return html`<li id=track-${index} onclick=${play}>${pad(index, 3)} ${title}</li>`
+        return html`<li id="track-${index}">
+            <div class="track-link" onclick=${showInfo}>INFO</div>
+            <div class="track-title" onclick=${play}>
+                ${pad(index, 3)} ${title}
+            </div>
+            </li>`
+
+        function showInfo() {
+            state.modalInfo = {track: track, title: title, index: index}
+            state.showModal = true
+            emit("render")
+        }
         
         // play the track when clicked on
         function play() {
@@ -306,6 +319,32 @@ function mainView(state, emit) {
             } else {
                 emit("playTrack", index)
             }
+        }
+    }
+
+    function createInfoModal() { 
+        var archiveUrl = state.modalInfo.track.substr(0,70)
+        var archiveInfo = `this archive contains music from <div> http://weeklybeats.com</div>`
+        if (state.showModal) {
+            return html`
+            <div id="info-modal">
+                <div id="info-title">${state.modalInfo.title}</div>
+                <div id="info-archive">
+                    <div>from archive:</div>
+                    <a href="${archiveUrl}">${archiveUrl}</a>
+                </div>
+                <div id="info-text">
+                    <div>info.txt:</div>
+                    <pre id="info-pre">${archiveInfo}</pre>
+                </div>
+                <div id="info-close" onclick=${close}>close</div>
+            </div>`
+        }
+        return html``
+
+        function close() {
+            state.showModal = false
+            emit("render")
         }
     }
 
@@ -378,6 +417,8 @@ function prefix(url, path) {
 async function init(state, emitter) {
     reset(state)
     state.playlists = []
+    state.modalInfo = {track: "", title: "", index: -1}
+    state.showModal = false;
     state.following = []
     state.user = {}
     state.isOwner = false
