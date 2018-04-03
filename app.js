@@ -676,15 +676,15 @@ function inputHandler(state, emitter) {
                 var val = sep >= 0 ? msg.substr(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
+                // assume it's a dat archive folder, and try to read its contents
                 var url = normalizeArchive(msg)
                 if (!url || url.length != 64) {
                     return
                 }
-                // assume it's a dat archive folder, and try to read its contents
-
                 var a = new DatArchive(msg)
                 // length of dat:// + hash = 70
                 var path = msg.substr(70) || "/"
+                // disallow adding the same archive folder multiple times
                 if (state.archives.indexOf(msg) >= 0) {
                     return
                 }
