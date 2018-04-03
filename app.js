@@ -685,9 +685,10 @@ function inputHandler(state, emitter) {
                 var a = new DatArchive(msg)
                 // length of dat:// + hash = 70
                 var path = msg.substr(70) || "/"
-                if (state.archives.indexOf(msg) < 0) {
-                    state.archives.push(msg)
+                if (state.archives.indexOf(msg) >= 0) {
+                    return
                 }
+                state.archives.push(msg)
                 a.readdir(path).then((dir) => {
                     dir.filter((i) => isTrack(i)).forEach((i) => {
                         var p = prefix(url, i)
