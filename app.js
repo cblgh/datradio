@@ -367,7 +367,11 @@ function mainView(state, emit) {
             if (e.key === "n") { emit("nextTrack") }
             else if (e.key === "p") { emit("previousTrack") }
             else if (e.key === "r") { emit("randTrack") }
-            else if (e.key === " ") { 
+            else if (e.key === "r") { emit("randTrack") }
+            else if (e.keyCode == 27) {
+                state.showModal = false
+                emit("render")
+            } else if (e.key === " ") { 
                 e.preventDefault()
                 if (player.paused) emit("resumeTrack")
                 else emit("pauseTrack")
