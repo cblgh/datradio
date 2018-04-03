@@ -258,6 +258,10 @@ function mainView(state, emit) {
             <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
             ${createInfoModal()}
             <div id="grid-container">
+                <ul id="archives-container">
+                <h3>archives in playlist</h3>
+                ${state.archives.map(createArchiveEl)}
+                </ul>
                 <ul id="playlists">
                     <h3>${state.user.name}'s playlists </h3>
                     ${state.playlists.map(createPlaylistEl)}
@@ -285,6 +289,10 @@ function mainView(state, emit) {
         var player = document.getElementById("player")
         player.style.display = player.style.display == "block" ? "none" : "block"
                     emit("resumeTrack")
+    }
+
+    function createArchiveEl(arch) {
+        return html`<li class="archive-el"><a href="${arch}">${shorten(arch)}</a></li>`
     }
 
     function createTrack(track, index) {
@@ -375,6 +383,10 @@ function mainView(state, emit) {
     }
 }
 
+function shorten(url) {
+    return url.substring(0,15) + ".." + url.substring(66,70)
+}
+
 function createPlaylistEl(playlist) {
     return html`<li><a href="/#${playlist}">${playlist}</a></li>`
 }
@@ -418,7 +430,7 @@ async function init(state, emitter) {
     reset(state)
     state.playlists = []
     state.modalInfo = {track: "", title: "", index: -1}
-    state.showModal = false;
+    state.showModal = false
     state.following = []
     state.user = {}
     state.isOwner = false
