@@ -16,16 +16,11 @@ li {
 
 /* MODAL STUFF */
 #info-modal {
+    grid-area: modal;
     display: grid;
-    position: absolute;
     background: inherit;
-    width: 700px;
-    height: 500px;
-    padding: 50px;
-    margin-left: auto;
-    margin-right: auto;
-    left: 0;
-    right: 0;
+    width: 500px;
+    /* height: 500px; */
 
     grid-template-rows: 0px 0px 40px 60px 1fr;
 
@@ -205,13 +200,14 @@ a:hover, #fork-url:hover {
     display: grid;
     grid-area: center;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 35px 50px 1fr;
+    grid-template-rows: auto auto 35px 50px 1fr 1fr;
     grid-template-areas: 
     "title"
     "description"
     "time"
     "terminal"
     "tracks"
+    "modal"
     ;
 }
 

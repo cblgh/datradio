@@ -64,6 +64,9 @@ var hotkeySheet = {
     },
     "random track": {
         key: "r",
+    },
+    "close info": {
+        key: "x",
     }
 }
 
@@ -256,7 +259,6 @@ function mainView(state, emit) {
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
-            ${createInfoModal()}
             <div id="grid-container">
                 <ul id="archives-container">
                 <h3>archives in playlist</h3>
@@ -275,6 +277,7 @@ function mainView(state, emit) {
                     ${state.tracks.map(createTrack)}
                     </ul>
                     ${counter.render(state.time, state.duration)}
+                    ${createInfoModal()}
                 </div>
                 ${createHelpSidebar()}
                 <audio id="player" onended=${trackEnded} controls="controls" >
@@ -368,7 +371,7 @@ function mainView(state, emit) {
             else if (e.key === "p") { emit("previousTrack") }
             else if (e.key === "r") { emit("randTrack") }
             else if (e.key === "r") { emit("randTrack") }
-            else if (e.keyCode == 27) {
+            else if (e.key === "x") {
                 state.showModal = false
                 emit("render")
             } else if (e.key === " ") { 
