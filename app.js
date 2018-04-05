@@ -755,8 +755,8 @@ function inputHandler(state, emitter) {
         if (msg.length) {
             if (msg[0] === ".") {
                 var sep = msg.indexOf(" ")
-                var cmd = sep >= 0 ? msg.substring(1, sep-1).trim() : msg.substring(1)
-                var val = sep >= 0 ? msg.substring(sep).trim() : ""
+                var cmd = sep >= 0 ? msg.substr(1, sep-1).trim() : msg.substr(1)
+                var val = sep >= 0 ? msg.substr(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
                 // assume it's a dat archive folder, and try to read its contents
