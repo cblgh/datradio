@@ -71,8 +71,8 @@ li {
     cursor: pointer;
 }
 
-.track-link-disabled {
-    text-decoration: line-through !important;
+.track-link:hover {
+    opacity: 0.5 !important;
 }
 
 #tracks li:hover {
