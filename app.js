@@ -31,6 +31,20 @@ function format(durationStr) {
     return `${min}:${sec}`
 }
 
+function shuffle(inArr) {
+    var output = [].concat(inArr)
+    // fisher-yates shuffle
+    for (var i = output.length-1; i > 1; i--) {
+        // 0 <= j <= i
+        var j = Math.floor(Math.random() * (i+1));
+        // do the swap
+        var temp = output[i];
+        output[i] = output[j];
+        output[j] = temp;
+    }
+    return output
+}
+
 class Counter extends Nanocomponent {
     constructor() {
         super()
@@ -197,6 +211,13 @@ var commands = {
             var [src, dst] = value.split(/\W+/g)
             emit.emit("moveTrack", src, dst)
         }
+    },
+    "shuffle": {
+        value: "on|off",
+        desc: "turn on/off shuffle for playlist",
+        call: function(state, emit, value) {
+            console.log(shuffle(state.tracks))
+        }
     }
 }
 
@@ -271,6 +292,7 @@ function mainView(state, emit) {
     return html`
         <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
+            <a id="tutorial-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/tutorial.md">how to use</div>
             <div id="grid-container">
                 <ul id="archives-container">
                 <h3>archives in playlist</h3>
@@ -505,12 +527,9 @@ async function init(state, emitter) {
             state.tracks = await loadTracks(playlist)
 
             // TODO: use .watch() instead
-            // register .watch() 
-
             state.archives.forEach((arch) => {
                 var trackArchive = new DatArchive(arch)
                 var tracePath = arch.substring(70).replace(/\/$/, "") // remove trailing slash
-                console.log("testing tracing of archive for", arch, "watching path", tracePath)
                 var patterns = ["wav", "ogg", "mp3"].map((fmt) => `${tracePath}/*.${fmt}`)
                 var evts = trackArchive.createFileActivityStream(patterns)
                 evts.addEventListener("changed", ({path}) => {
