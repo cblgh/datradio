@@ -214,7 +214,7 @@ var commands = {
     },
     "shuffle": {
         value: "on|off",
-        desc: "turn on/off shuffle for playlist",
+        desc: "turn on/off shuffle for playlist. [COMING SOON]",
         call: function(state, emit, value) {
             console.log(shuffle(state.tracks))
         }
