@@ -105,6 +105,11 @@ a:hover, #fork-url:hover {
     font-size: 9pt;
 }
 
+.help-container:hover {
+    cursor: pointer;
+    opacity: 0.8;
+}
+
 .hotkey-container {
     padding-bottom: 0;
 }

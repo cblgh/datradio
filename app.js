@@ -102,7 +102,7 @@ var commands = {
         }
     },
     "create": {
-        value: "playlist-name (no spaces)",
+        value: "playlist-name-no-spaces",
         desc: "create a playlist",
         call: function(state, emit, value) {
             value = value.replace(" ", "-")
@@ -137,7 +137,7 @@ var commands = {
         }
     },
     "rename": {
-        value: "new-playlist-name (no spaces)",
+        value: "new-playlist-name-no-spaces",
         desc: "rename the current playlist",
         call: function(state, emit, value) {
             if (value) {
@@ -241,7 +241,12 @@ function createHelpSidebar() {
     }
 
     function createHelpEl(p) {
-        return html`<div class="help-container"><div class="help-cmd">${p.key}</div><div class="help-value">${p.cmd.value}</div><div class="help-desc">${p.cmd.desc}</div></div>`
+        return html`<div onclick=${fillTerminal} class="help-container"><div class="help-cmd">${p.key}</div><div class="help-value">${p.cmd.value}</div><div class="help-desc">${p.cmd.desc}</div></div>`
+
+        function fillTerminal() {
+            var term = document.getElementById("terminal")
+            term.value = `.${p.key} ${p.cmd.value}`
+        }
     }
 
     function createHotkeyEl(p) {
