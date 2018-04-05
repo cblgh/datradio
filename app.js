@@ -209,7 +209,7 @@ async function loadTracks(playlist) {
             var promises = playlist.archives.map((address) => {
                 return new Promise((res1, rej1) => {
                     var a = new DatArchive(address)
-                    var path = address.substr(70) || "/"
+                    var path = address.substring(70) || "/"
                     var files = await a.readdir(path)
                     var archiveTracks = files.filter((i) => isTrack(i)).map((i) => prefix(address, i))
                     var newTracks = archiveTracks.filter((i) => {
@@ -442,12 +442,12 @@ async function loadPlaylists() {
 function prefix(url, path) {
     if (path) {
         // append /
-        if (url.substr(-1) != "/") {
+        if (url.substring(-1) != "/") {
             url += "/"
         }
         url += path
     }
-    if (url.substr(0, 6) != "dat://") {
+    if (url.substring(0, 6) != "dat://") {
         return `dat://${url}`
     }
     return url
@@ -736,8 +736,8 @@ function inputHandler(state, emitter) {
         if (msg.length) {
             if (msg[0] === ".") {
                 var sep = msg.indexOf(" ")
-                var cmd = sep >= 0 ? msg.substr(1, sep-1).trim() : msg.substr(1)
-                var val = sep >= 0 ? msg.substr(sep).trim() : ""
+                var cmd = sep >= 0 ? msg.substring(1, sep-1).trim() : msg.substring(1)
+                var val = sep >= 0 ? msg.substring(sep).trim() : ""
                 handleCommand(cmd, val)
             } else {
                 // assume it's a dat archive folder, and try to read its contents
@@ -747,7 +747,7 @@ function inputHandler(state, emitter) {
                 }
                 var a = new DatArchive(msg)
                 // length of dat:// + hash = 70
-                var path = msg.substr(70) || "/"
+                var path = msg.substring(70) || "/"
                 // disallow adding the same archive folder multiple times
                 if (state.archives.indexOf(msg) >= 0) {
                     return
