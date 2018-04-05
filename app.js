@@ -79,7 +79,7 @@ var commands = {
         }
     },
     "color": {
-        value:  "#f2f2f2",
+        value:  "pink",
         desc: "change the font colour",
         call: function(state, emit, value) {
             state.profile.color = value
@@ -252,6 +252,7 @@ function createHelpSidebar() {
         function fillTerminal() {
             var term = document.getElementById("terminal")
             term.value = `.${p.key} ${p.cmd.value}`
+            term.focus()
         }
     }
 
