@@ -308,9 +308,24 @@ function mainView(state, emit) {
             </li>`
 
         function showInfo() {
-            state.modalInfo = {track: track, title: title, index: index}
+            state.modalInfo = {track: track, title: title, index: index, info: "loading.."}
             state.showModal = true
             emit("render")
+
+            var path = track.substring(70, track.lastIndexOf("/"))
+            var d = new DatArchive(track)
+
+            d.readFile(path + "/info.txt")
+                .then((info) => {
+                    state.modalInfo.info = info
+                    console.log("INFO.txt info", info)
+                    emit("render")
+                })
+                .catch((e) => {
+                    console.log("modalInfo", e)
+                    state.modalInfo.info = "info.txt missing from archive"
+                    emit("render")
+                })
         }
         
         // play the track when clicked on
@@ -333,8 +348,9 @@ function mainView(state, emit) {
     }
 
     function createInfoModal() { 
-        var archiveUrl = state.modalInfo.track.substr(0,70)
-        var archiveInfo = `this archive contains music from <div> http://weeklybeats.com</div>`
+        var index = state.modalInfo.track.lastIndexOf("/")
+        var archiveUrl = state.modalInfo.track.substring(0,index)
+
         if (state.showModal) {
             return html`
             <div id="info-modal">
@@ -345,7 +361,7 @@ function mainView(state, emit) {
                 </div>
                 <div id="info-text">
                     <div>info.txt:</div>
-                    <pre id="info-pre">${archiveInfo}</pre>
+                    <pre id="info-pre">${state.modalInfo.info}</pre>
                 </div>
                 <div id="info-close" onclick=${close}>close</div>
             </div>`
@@ -414,7 +430,7 @@ function reset(state) {
 }
 
 async function loadPlaylists() {
-    var playlists = (await archive.readdir("playlists")).filter((i) => { return i.substr(i.length - 5) === ".json" }).map((p) => p.substr(0,p.length-5))
+    var playlists = (await archive.readdir("playlists")).filter((i) => { return i.substring(i.length - 5) === ".json" }).map((p) => p.substring(0,p.length-5))
     return playlists
 }
 
@@ -443,7 +459,7 @@ async function init(state, emitter) {
     // should the player component be a Nanocomponent??
     
     state.playlists = []
-    state.modalInfo = {track: "", title: "", index: -1}
+    state.modalInfo = {track: "", title: "", index: -1, info: "loading.."}
     state.showModal = false
     state.following = []
     state.user = {}
@@ -465,7 +481,7 @@ async function init(state, emitter) {
     state.user = JSON.parse(await archive.readFile("profile.json"))
     state.following = await Promise.all(state.user.following.map((url) => extractSub(url)))
     state.playlists = await loadPlaylists() 
-    var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substr(1)}.json` : `playlists/playlist.json`
+    var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substring(1)}.json` : `playlists/playlist.json`
     // initialize the state with the default playlist
     loadPlaylist(archive, initialPlaylist)
 
@@ -639,7 +655,7 @@ async function save(state) {
 
 async function extractSub(url) {
     return {
-        source: url.substr(6, 64),
+        source: url.substring(6, 64),
         playlist: extractPlaylist(url),
         name: await getProfileName(url),
         link: url
@@ -653,7 +669,7 @@ async function getProfileName(datUrl) {
 }
 
 function extractPlaylist(input) {
-    var playlistName = input.substr(71)
+    var playlistName = input.substring(71)
     if (playlistName.length === 0) {
         return "playlist"
     }
