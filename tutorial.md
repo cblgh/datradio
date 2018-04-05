@@ -22,8 +22,8 @@ The tracks have now been added, and the archive is now monitored for future chan
                  seeded**)*
 
 
-                 * Let [cblgh](https://twitter.com/cblgh) know about any issues
-                 * Report issues or add patches at https://github.com/cblgh/datradio
 
-                 :black_heart::skull:
+Let [cblgh](https://twitter.com/cblgh) know about any issues   
+Report issues or add patches at https://github.com/cblgh/datradio   
 
+<3 p2p
