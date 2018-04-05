@@ -288,12 +288,6 @@ function mainView(state, emit) {
         `
     // '
 
-    function togglePlayer() {
-        var player = document.getElementById("player")
-        player.style.display = player.style.display == "block" ? "none" : "block"
-                    emit("resumeTrack")
-    }
-
     function createArchiveEl(arch) {
         return html`<li class="archive-el"><a href="${arch}">${shorten(arch)}</a></li>`
     }
@@ -435,6 +429,14 @@ function prefix(url, path) {
 
 async function init(state, emitter) {
     reset(state)
+    // TODO:
+    // implement
+    // state.isPlaying
+    //
+    // figure out why choo-based state playing bugs out;
+    // is it due to the player being reloaded somehow??
+    // should the player component be a Nanocomponent??
+    
     state.playlists = []
     state.modalInfo = {track: "", title: "", index: -1}
     state.showModal = false
@@ -475,6 +477,41 @@ async function init(state, emitter) {
             // (might be premature optimization oops :^)
             emitter.emit("render")
             state.tracks = await loadTracks(playlist)
+
+            // TODO: use .watch() instead
+            // register .watch() 
+
+            state.archives.forEach((arch) => {
+                var trackArchive = new DatArchive(arch)
+                var tracePath = arch.substring(70).replace(/\/$/, "") // remove trailing slash
+                console.log("testing tracing of archive for", arch, "watching path", tracePath)
+                var patterns = ["wav", "ogg", "mp3"].map((fmt) => `${tracePath}/*.${fmt}`)
+                var evts = trackArchive.createFileActivityStream(patterns)
+                evts.addEventListener("changed", ({path}) => {
+                    console.log(`update found for ${arch}: ${path}`)
+                    var trackPath = prefix(normalizeArchive(arch) + path)
+                    trackArchive.stat(path)
+                    .then((info) => {
+                        // track was either updated or added to playlist
+                        // check if track exists in playlist already
+                        if (state.tracks.indexOf(trackPath) < 0) {
+                            console.log("track was added to playlist, update state.tracks")
+                            state.tracks.push(trackPath)
+                            save(state)
+                            emitter.emit("render")
+                        }
+                    })
+                    .catch((e) => {
+                        console.error(e)
+                        console.log("track was probably removed from the playlist")
+                        console.log("remove from state.tracks")
+                        state.tracks.splice(state.tracks.indexOf(trackPath), 1)
+                        save(state)
+                        emitter.emit("render")
+                    })
+                })
+            })
+            
             save(state)
             // render again after having loaded the tracks
             emitter.emit("render")
@@ -554,6 +591,20 @@ async function init(state, emitter) {
             if (emitNextTrack) { emitter.emit("nextTrack") }
         }
     })
+
+    function playTrack(track, index) {
+        removeClass("playing")
+        removeClass("paused")
+        addClass(index, "playing")
+
+        console.log(`playing ${track}`)
+        var player = document.getElementById("player")
+        player.src = track
+        player.load()
+        player.play()
+        var duration = player.duration || 0
+        counter.render(player.currentTime, duration)
+    }
 }
 
 function addClass(index, cssClass) {
@@ -571,19 +622,6 @@ function removeClass(cssClass) {
     }
 }
 
-function playTrack(track, index) {
-    removeClass("playing")
-    removeClass("paused")
-    addClass(index, "playing")
-
-    console.log(`playing ${track}`)
-    var player = document.getElementById("player")
-    player.src = track
-    player.load()
-    player.play()
-    var duration = player.duration || 0
-    counter.render(player.currentTime, duration)
-}
 
 async function save(state) {
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
