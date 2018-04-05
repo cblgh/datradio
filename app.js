@@ -202,6 +202,7 @@ var commands = {
 
 async function loadTracks(playlist) {
     var tracks = playlist.tracks
+    var fromArchives = []
     return new Promise((resolve, reject) => {
         // TODO: refactor/clean this?
         if (playlist) {
@@ -210,16 +211,21 @@ async function loadTracks(playlist) {
                     var a = new DatArchive(address)
                     var path = address.substr(70) || "/"
                     var files = await a.readdir(path)
-                    var newTracks = files.filter((i) => isTrack(i))
-                        .map((i) => prefix(address, i))
-                        .filter((i) => {
+                    var archiveTracks = files.filter((i) => isTrack(i)).map((i) => prefix(address, i))
+                    var newTracks = archiveTracks.filter((i) => {
                             return playlist.removed.indexOf(i) < 0 && tracks.indexOf(i) < 0
                         })
                     tracks = tracks.concat(newTracks)
+                    fromArchives = fromArchives.concat(archiveTracks)
                     res1()
                 })
             })
             await Promise.all(promises)
+            // TODO: is this good? would we rather preserve tracks that have been added
+            // and load them using version numbers?
+            // filter out tracks that have been added to our playlist previously
+            // but have been removed from the hosting archive (i.e. outside of datradio)
+            tracks = tracks.filter((i) => fromArchives.indexOf(i) >= 0)
             resolve(tracks)
         }
     })
@@ -318,11 +324,9 @@ function mainView(state, emit) {
             d.readFile(path + "/info.txt")
                 .then((info) => {
                     state.modalInfo.info = info
-                    console.log("INFO.txt info", info)
                     emit("render")
                 })
                 .catch((e) => {
-                    console.log("modalInfo", e)
                     state.modalInfo.info = "info.txt missing from archive"
                     emit("render")
                 })
@@ -349,7 +353,7 @@ function mainView(state, emit) {
 
     function createInfoModal() { 
         var index = state.modalInfo.track.lastIndexOf("/")
-        var archiveUrl = state.modalInfo.track.substring(0,index)
+        var archiveUrl = state.modalInfo.track.substring(0,70)
 
         if (state.showModal) {
             return html`
