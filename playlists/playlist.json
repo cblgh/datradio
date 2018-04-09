@@ -1,10 +1,7 @@
 {
-  "archives": [
-  ],
-  "tracks": [
-  ],
-  "removed": [
-  ],
+  "archives": [],
+  "tracks": [],
+  "removed": [],
   "profile": {
     "bg": "black",
     "color": "#f2f2f2"

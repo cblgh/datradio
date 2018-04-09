@@ -204,6 +204,13 @@ var commands = {
             emit.emit("deleteTrack", parseInt(value))
         }
     },
+    "del-archive": {
+        value: "dat://1337...7331",
+        desc: "delete all tracks from the archive",
+        call: function(state, emit, value) {
+            emit.emit("deleteArchive", value)
+        }
+    },
     "mv": {
         value: "trackIndex newIndex",
         desc: "move a track in the current playlist",
@@ -637,6 +644,27 @@ async function init(state, emitter) {
         }
     })
 
+    emitter.on("deleteArchive", function(url) {
+        url = prefix(normalizeArchive(url))
+        // var emitNextTrack = false
+        // state.trackIndex = parseInt(state.trackIndex)
+        // if (differentFromUrl(state.tracks[state.trackIndex]) {
+        // if (state.trackIndex >= index) {
+        //     var emitNextTrack = (state.trackIndex === index && state.tracks.length > 0)
+        //     state.trackIndex = state.trackIndex - 1
+        //     // if current was deleted, play next
+        //     if (emitNextTrack) { emitter.emit("nextTrack") }
+        // }
+        // }
+        state.archives = state.archives.filter(differentFromUrl)
+        state.tracks = state.tracks.filter(differentFromUrl)
+        save(state)
+
+        function differentFromUrl(a) {
+            return a.substr(0, url.length) !== url
+        }
+    })
+
     function playTrack(track, index) {
         removeClass("playing")
         removeClass("paused")
@@ -666,7 +694,6 @@ function removeClass(cssClass) {
         }
     }
 }
-
 
 async function save(state) {
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
