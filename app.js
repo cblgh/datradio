@@ -455,7 +455,7 @@ function createPlaylistSub(sub) {
 function reset(state) {
     state.time = 0
     state.duration = 0
-    state.trackIndex = 0
+    state.trackIndex = null
     state.tracks = []
     state.removed = []
     state.archives = []
