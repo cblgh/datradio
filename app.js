@@ -21,7 +21,7 @@ app.mount("body")
 
 // fix modulo for negative integers
 function mod(n, m) {
-      return ((n % m) + m) % m;
+      return ((n % m) + m) % m
 }
 
 function format(durationStr) {
@@ -36,11 +36,11 @@ function shuffle(inArr) {
     // fisher-yates shuffle
     for (var i = output.length-1; i > 1; i--) {
         // 0 <= j <= i
-        var j = Math.floor(Math.random() * (i+1));
+        var j = Math.floor(Math.random() * (i+1))
         // do the swap
-        var temp = output[i];
-        output[i] = output[j];
-        output[j] = temp;
+        var temp = output[i]
+        output[i] = output[j]
+        output[j] = temp
     }
     return output
 }
@@ -297,7 +297,7 @@ function mainView(state, emit) {
     emit("DOMTitleChange", title + `/${state.user.name}`)
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
-        <body onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
+        <body ondrop=${drop} ondragover=${dragover} onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
             <a id="tutorial-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/tutorial.md">how to use</div>
             <div id="grid-container">
@@ -328,6 +328,48 @@ function mainView(state, emit) {
         </body>
         `
     // '
+
+    function dragover(e) {
+        e.preventDefault()
+    }
+
+    function drop(e) {
+        e.preventDefault()
+
+        var files = Array.prototype.filter.call(e.dataTransfer.files, ((i) => isTrack(i.name)))
+        var playlistName = state.params.playlist ? state.params.playlist : "playlist"
+        // var d = await DatArchive.selectArchive({
+        //       title: 'Hello, world!',
+        //       buttonLabel: 'My new site'
+        // })
+        if (!state.profile.archive) {
+            var d = await DatArchive.create({
+                  title: `[datradio tracks] ${state.user.name}/${playlistName}`,
+                  description: `datradio tracks for ${state.user.name}/${playlistName}`
+            })
+            state.profile.archive = d.url
+            state.archives.push(d.url)
+        } else {
+            var d = new DatArchive(state.profile.archive)
+        }
+
+        var reader = new FileReader()
+        async function next(i=0) {
+            reader.readAsArrayBuffer(files[i])
+
+            reader.onload = async function (e) {
+                await d.writeFile(`/${files[i].name}`, e.target.result)
+                if (i + 1 < files.length) {
+                    next(i+1)
+                }
+            }
+        }
+        next()
+        var tracks = files.map((i) => `${d.url}/${i.name}`)
+        state.tracks = state.tracks.concat(tracks)
+        save(state)
+        emit("render")
+    }
 
     function createArchiveEl(arch) {
         return html`<li class="archive-el"><a href="${arch}">${shorten(arch)}</a></li>`
