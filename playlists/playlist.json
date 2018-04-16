@@ -1,9 +1,16 @@
 {
-  "archives": [],
-  "tracks": [],
+  "archives": [
+    "dat://7b8c5b60a64282ece25649363dc33d26d051d6265a993de70d5355cc1af7b95a"
+  ],
+  "tracks": [
+    "dat://7b8c5b60a64282ece25649363dc33d26d051d6265a993de70d5355cc1af7b95a/weekly-beats-week-15-italo-easter-cblgh-2018.mp3",
+    "dat://7b8c5b60a64282ece25649363dc33d26d051d6265a993de70d5355cc1af7b95a/weekly-beats-week-14-cblgh-sunless-society.mp3"
+  ],
   "removed": [],
+  "description": "the latest weekly beats",
   "profile": {
     "bg": "black",
-    "color": "#f2f2f2"
+    "color": "#f2f2f2",
+    "archive": "dat://7b8c5b60a64282ece25649363dc33d26d051d6265a993de70d5355cc1af7b95a"
   }
 }

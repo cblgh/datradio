@@ -119,7 +119,7 @@ var commands = {
         value: "playlist-name-no-spaces",
         desc: "create a playlist",
         call: function(state, emit, value) {
-            value = value.replace(" ", "-")
+            value = value.replace(/\W*/g, "")
             state.playlists.push(value)
             window.location.hash = value
             reset(state)
@@ -134,12 +134,13 @@ var commands = {
         value: "playlist-name",
         desc: "delete the playlist",
         call: function(state, emit, value) {
-            // don't delete the default playlist
-            if (value === "playlist") {
-                return
-            }
-            deletePlaylist(value)
-            .then(loadPlaylists)
+            var p = deletePlaylist(value)
+            //     .then(() => {
+            //     console.log("ok delete ok")
+            // })
+            console.log(p)
+            // this shit is wack
+            p.then(() => {return loadPlaylists() })
             .then((playlists) => {
                 state.playlists = playlists
                 // handle deleting the current playlist 
@@ -155,6 +156,7 @@ var commands = {
         desc: "rename the current playlist",
         call: function(state, emit, value) {
             if (value) {
+                value = value.replace(/\W*/g, "")
                 var oldPlaylist = state.params.playlist ? state.params.playlist : "playlist"
                 state.playlists.splice(state.playlists.indexOf(oldPlaylist), 1)
                 savePlaylist(state, value).then(() => {
@@ -260,7 +262,12 @@ async function loadTracks(playlist) {
 }
 
 async function deletePlaylist(name) {
-    return await archive.unlink(`playlists/${name}.json`)
+    // don't delete the default playlist
+    if (name === "playlist") {
+        var emptyState = {archives: [], tracks: [], removed: [], description: "", profile: {bg: "black", color: "#f2f2f2"}}
+        return savePlaylist(emptyState, "playlist")
+    }
+    return archive.unlink(`playlists/${name}.json`)
 }
 
 function createHelpSidebar() {
@@ -297,7 +304,7 @@ function mainView(state, emit) {
     emit("DOMTitleChange", title + `/${state.user.name}`)
     var playlistName = state.params.playlist ? state.params.playlist : "playlist"
     return html`
-        <body ondrop=${drop} ondragover=${dragover} onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
+        <body ondragleave=${dragleave} ondrop=${drop} ondragover=${dragover} onkeydown=${hotkeys} style="background-color: ${state.profile.bg}!important; color: ${state.profile.color}!important;">
             <a id="fork-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/">create your own radio</div>
             <a id="tutorial-url" href="dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/tutorial.md">how to use</div>
             <div id="grid-container">
@@ -331,23 +338,39 @@ function mainView(state, emit) {
 
     function dragover(e) {
         e.preventDefault()
+        var body = document.querySelectorAll('body')[0];
+        body.classList = "drag-fade"
+    }
+
+    function dragleave(e) {
+        e.preventDefault()
+        var body = document.querySelectorAll('body')[0];
+        body.classList = ""
     }
 
     function drop(e) {
         e.preventDefault()
 
-        var files = Array.prototype.filter.call(e.dataTransfer.files, ((i) => isTrack(i.name)))
-        var playlistName = state.params.playlist ? state.params.playlist : "playlist"
+        var body = document.querySelectorAll('body')[0];
+        body.classList = ""
+
+        console.log(e.dataTransfer.files)
+        var files = Array.prototype.filter.call(e.dataTransfer.files, 
+            ((i) => isTrack(i.name) || i.name === "info.txt"))
+        // only allow tracks or info.txt to be added
+        if (files.length === 0) { return }
         // var d = await DatArchive.selectArchive({
         //       title: 'Hello, world!',
         //       buttonLabel: 'My new site'
         // })
+        var playlistName = state.params.playlist ? state.params.playlist : "playlist"
         if (!state.profile.archive) {
             var d = await DatArchive.create({
                   title: `[datradio tracks] ${state.user.name}/${playlistName}`,
                   description: `datradio tracks for ${state.user.name}/${playlistName}`
             })
             state.profile.archive = d.url
+            // add the playlist-specific archive to our list of archives
             state.archives.push(d.url)
         } else {
             var d = new DatArchive(state.profile.archive)
@@ -365,7 +388,8 @@ function mainView(state, emit) {
             }
         }
         next()
-        var tracks = files.map((i) => `${d.url}/${i.name}`)
+
+        var tracks = files.filter((i) => i.name !== "info.txt").map((i) => `${d.url}/${i.name}`)
         state.tracks = state.tracks.concat(tracks)
         save(state)
         emit("render")
@@ -502,7 +526,7 @@ function reset(state) {
     state.removed = []
     state.archives = []
     state.description = ""
-    state.profile = {bg: "black", color: "#f2f2f2"}
+    state.profile = {bg: "black", color: "#f2f2f2", archive: ""}
 }
 
 async function loadPlaylists() {
@@ -558,8 +582,12 @@ async function init(state, emitter) {
     state.following = await Promise.all(state.user.following.map((url) => extractSub(url)))
     state.playlists = await loadPlaylists() 
     var initialPlaylist = window.location.hash ? `playlists/${window.location.hash.substring(1)}.json` : `playlists/playlist.json`
-    // initialize the state with the default playlist
-    loadPlaylist(archive, initialPlaylist)
+
+    archive.stat(initialPlaylist).then((info) => {
+        loadPlaylist(archive, initialPlaylist)
+    }).catch((err) => {
+        window.location = "/#playlist"
+    })
 
     async function loadPlaylist(playlistArchive, path) {
         // try to load the user's playlist
@@ -580,6 +608,7 @@ async function init(state, emitter) {
                 var trackArchive = new DatArchive(arch)
                 var tracePath = arch.substring(70).replace(/\/$/, "") // remove trailing slash
                 var patterns = ["wav", "ogg", "mp3"].map((fmt) => `${tracePath}/*.${fmt}`)
+                // /**/
                 var evts = trackArchive.createFileActivityStream(patterns)
                 evts.addEventListener("changed", ({path}) => {
                     console.log(`update found for ${arch}: ${path}`)
@@ -617,6 +646,7 @@ async function init(state, emitter) {
 
     // load the playlist we clicked on
     emitter.on("navigate", function()  {
+        reset(state)
         var arch = archive
         var playlistName = state.params.playlist ? state.params.playlist : "playlist"
         if (state.route === remoteRoute) {
@@ -810,7 +840,7 @@ function normalizeArchive(url) {
   return url;
 }
 
-function savePlaylist(state, name) {
+async function savePlaylist(state, name) {
     return archive.writeFile(`playlists/${name}.json`, JSON.stringify({
         archives: state.archives, 
         tracks: state.tracks,
