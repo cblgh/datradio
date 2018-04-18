@@ -134,20 +134,15 @@ var commands = {
         value: "playlist-name",
         desc: "delete the playlist",
         call: function(state, emit, value) {
-            var p = deletePlaylist(value)
-            //     .then(() => {
-            //     console.log("ok delete ok")
-            // })
-            console.log(p)
-            // this shit is wack
-            p.then(() => {return loadPlaylists() })
-            .then((playlists) => {
-                state.playlists = playlists
-                // handle deleting the current playlist 
-                if (value === state.params.playlist) {
-                    window.location.hash = "playlist"
-                }
-                emit.emit("render")
+            deletePlaylist(value).then(() => {
+                loadPlaylists().then((playlists) => {
+                    state.playlists = playlists
+                    // handle deleting the current playlist 
+                    if (value === state.params.playlist) {
+                        window.location.hash = "playlist"
+                    }
+                    emit.emit("render")
+                })
             })
         }
     },
@@ -159,13 +154,14 @@ var commands = {
                 value = value.replace(/\W*/g, "")
                 var oldPlaylist = state.params.playlist ? state.params.playlist : "playlist"
                 state.playlists.splice(state.playlists.indexOf(oldPlaylist), 1)
+
                 savePlaylist(state, value).then(() => {
-                    deletePlaylist(oldPlaylist)
-                    .then(loadPlaylists)
-                    .then((playlists) => {
-                        state.playlists = playlists
-                        window.location.hash = value.replace(" ", "")
-                        emit.emit("render")
+                    deletePlaylist(oldPlaylist).then(() => {
+                        loadPlaylists().then((playlists) => {
+                            state.playlists = playlists
+                            window.location.hash = value.replace(" ", "")
+                            emit.emit("render")
+                        })
                     })
                 })
             }
@@ -267,7 +263,7 @@ async function deletePlaylist(name) {
         var emptyState = {archives: [], tracks: [], removed: [], description: "", profile: {bg: "black", color: "#f2f2f2"}}
         return savePlaylist(emptyState, "playlist")
     }
-    return archive.unlink(`playlists/${name}.json`)
+    await archive.unlink(`playlists/${name}.json`)
 }
 
 function createHelpSidebar() {
@@ -529,9 +525,15 @@ function reset(state) {
     state.profile = {bg: "black", color: "#f2f2f2", archive: ""}
 }
 
-async function loadPlaylists() {
-    var playlists = (await archive.readdir("playlists")).filter((i) => { return i.substring(i.length - 5) === ".json" }).map((p) => p.substring(0,p.length-5))
-    return playlists
+function loadPlaylists() {
+    return new Promise((res, rej) => {
+        archive.readdir("playlists").then((playlists) => {
+            playlists = playlists.filter((i) => { return i.substring(i.length - 5) === ".json" }).map((p) => p.substring(0,p.length-5))
+            res(playlists)
+        }).catch((e) => {
+            console.error("loadPlaylists failed with", e)
+        })
+    })
 }
 
 function prefix(url, path) {
