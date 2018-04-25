@@ -1,7 +1,7 @@
 # datradio
 here we go again
 
-![](https://cblgh.org/i/2018-03/2409Qe1.png)
+![](https://pbs.twimg.com/media/DZe9YxVW4AgMHbj.jpg:large)
 
 
 # Setup
