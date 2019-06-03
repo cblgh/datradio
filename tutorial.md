@@ -1,5 +1,5 @@
 # Get started
-* Install [Beaker Browser](https://beakerbrowser.com/docs/install/). You will need Beaker at least pre-release of 0.8
+* Install [Beaker Browser](https://beakerbrowser.com/install/). You will need Beaker at least pre-release of 0.8
 * Visit dat://31efd7c43603b57d18d0dcc4e2a32bf5cae08ab5930071e4da3513dbc4c60f5f/ and make an **editable copy**  
 *(psst. click on the **three dots** in the URL bar of Beaker to create an editable copy)*
 * **Create dat archives and fill them with music.** (You create the archives with Beaker, outside of datradio).   
